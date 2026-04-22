@@ -16,8 +16,11 @@ export async function createFamilyInvite(
 
   if (!email) return { success: false, error: 'Укажите email' }
 
+  console.log('Searching for user with email:', email)
   const invitee = await prisma.user.findUnique({ where: { email } })
-  if (!invitee) return { success: false, error: 'Пользователь не найден' }
+  console.log('Found user:', invitee ? `ID: ${invitee.id}, Email: ${invitee.email}` : 'null')
+  
+  if (!invitee) return { success: false, error: `Пользователь с email ${email} не найден в базе данных` }
   if (invitee.familyId) return { success: false, error: 'Пользователь уже в семье' }
 
   const token = crypto.randomBytes(32).toString('hex')
