@@ -48,16 +48,30 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-4">
         <div className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-900/40">
               <Wallet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">Баланс</p>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">Свободно</p>
               <p className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
                 {balance.formatted.balance}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-100 dark:bg-purple-900/40">
+              <Target className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+            </div>
+            <div>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">В копилках</p>
+              <p className="text-xl font-bold text-purple-600 dark:text-purple-400">
+                {balance.formatted.inGoals}
               </p>
             </div>
           </div>

@@ -5,26 +5,46 @@ import type { Currency } from '@/generated/prisma'
 export async function getFamilyBalance(familyId: string, baseCurrency: Currency) {
   const transactions = await prisma.transaction.findMany({
     where: { familyId },
-    select: { amount: true, type: true, currency: true },
+    select: { amount: true, type: true, currency: true, goalId: true },
+  })
+
+  const goals = await prisma.goal.findMany({
+    where: { familyId },
+    select: { currentAmount: true, currency: true },
   })
 
   let totalIncome = 0
   let totalExpense = 0
+  let totalInGoals = 0
 
+  // Считаем доходы и расходы (НЕ связанные с копилками)
   for (const tx of transactions) {
     const converted = convertCurrency(tx.amount, tx.currency, baseCurrency)
-    if (tx.type === 'INCOME') totalIncome += converted
-    else totalExpense += converted
+    if (tx.type === 'INCOME' && !tx.goalId) {
+      totalIncome += converted
+    } else if (tx.type === 'EXPENSE') {
+      totalExpense += converted
+    }
   }
 
+  // Считаем деньги в копилках
+  for (const goal of goals) {
+    const converted = convertCurrency(goal.currentAmount, goal.currency, baseCurrency)
+    totalInGoals += converted
+  }
+
+  const freeBalance = totalIncome - totalExpense - totalInGoals
+
   return {
-    balance: Math.round((totalIncome - totalExpense) * 100) / 100,
+    balance: Math.round(freeBalance * 100) / 100,
     totalIncome: Math.round(totalIncome * 100) / 100,
     totalExpense: Math.round(totalExpense * 100) / 100,
+    totalInGoals: Math.round(totalInGoals * 100) / 100,
     formatted: {
-      balance: formatCurrency(totalIncome - totalExpense, baseCurrency),
+      balance: formatCurrency(freeBalance, baseCurrency),
       income: formatCurrency(totalIncome, baseCurrency),
       expense: formatCurrency(totalExpense, baseCurrency),
+      inGoals: formatCurrency(totalInGoals, baseCurrency),
     },
   }
 }
