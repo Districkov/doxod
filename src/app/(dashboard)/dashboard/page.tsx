@@ -38,9 +38,9 @@ export default async function DashboardPage() {
   })
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+        <h1 className="text-xl font-bold sm:text-2xl text-zinc-900 dark:text-zinc-100">
           {family.name}
         </h1>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">

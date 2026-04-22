@@ -22,11 +22,11 @@ export default async function FamilyPage() {
   if (!family) return null
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Семья</h1>
+    <div className="space-y-4 sm:space-y-6">
+      <h1 className="text-xl font-bold sm:text-2xl text-zinc-900 dark:text-zinc-100">Семья</h1>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-4 sm:p-6 dark:border-zinc-800 dark:bg-zinc-900">
           <h2 className="mb-4 font-semibold text-zinc-900 dark:text-zinc-100">
             Участники ({family.members.length})
           </h2>

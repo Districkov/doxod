@@ -25,10 +25,10 @@ export default async function AnalyticsPage() {
   ])
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Аналитика</h1>
-        <div className="text-sm text-zinc-500 dark:text-zinc-400">
+        <h1 className="text-xl font-bold sm:text-2xl text-zinc-900 dark:text-zinc-100">Аналитика</h1>
+        <div className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
           Валюта: {family.baseCurrency}
         </div>
       </div>
