@@ -1,8 +1,8 @@
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { FamilyInviteForm } from '@/components/family/FamilyInviteForm'
-import { Users, Check, X } from 'lucide-react'
-import { acceptInvite, rejectInvite } from '../_actions/family-actions'
+import { InviteActions } from '@/components/family/InviteActions'
+import { Users } from 'lucide-react'
 
 export default async function FamilyPage() {
   const session = await auth()
@@ -63,28 +63,7 @@ export default async function FamilyPage() {
                     {invite.family.members.length} участник{invite.family.members.length === 1 ? '' : invite.family.members.length < 5 ? 'а' : 'ов'}
                   </p>
                 </div>
-                <div className="flex gap-2">
-                  <form action={acceptInvite}>
-                    <input type="hidden" name="token" value={invite.token} />
-                    <button
-                      type="submit"
-                      className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
-                    >
-                      <Check className="h-4 w-4" />
-                      Принять
-                    </button>
-                  </form>
-                  <form action={rejectInvite}>
-                    <input type="hidden" name="token" value={invite.token} />
-                    <button
-                      type="submit"
-                      className="flex items-center gap-2 rounded-lg bg-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600"
-                    >
-                      <X className="h-4 w-4" />
-                      Отклонить
-                    </button>
-                  </form>
-                </div>
+                <InviteActions token={invite.token} />
               </div>
             ))}
           </div>
