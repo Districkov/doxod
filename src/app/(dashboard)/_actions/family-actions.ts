@@ -81,6 +81,12 @@ export async function acceptInvite(formData: FormData): Promise<void> {
 
   revalidatePath('/family')
   revalidatePath('/dashboard')
+  revalidatePath('/transactions')
+  revalidatePath('/goals')
+  revalidatePath('/analytics')
+  
+  const { redirect } = await import('next/navigation')
+  redirect('/dashboard')
 }
 
 export async function rejectInvite(formData: FormData): Promise<void> {
