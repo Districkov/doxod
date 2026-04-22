@@ -18,10 +18,25 @@ export async function createFamilyInvite(
 
   console.log('Searching for user with email:', email)
   const invitee = await prisma.user.findUnique({ where: { email } })
-  console.log('Found user:', invitee ? `ID: ${invitee.id}, Email: ${invitee.email}` : 'null')
+  console.log('Found user:', invitee ? `ID: ${invitee.id}, Email: ${invitee.email}, FamilyId: ${invitee.familyId}` : 'null')
   
   if (!invitee) return { success: false, error: `Пользователь с email ${email} не найден в базе данных` }
-  if (invitee.familyId) return { success: false, error: 'Пользователь уже в семье' }
+  if (invitee.familyId === family.id) return { success: false, error: 'Пользователь уже в этой семье' }
+  
+  // Проверяем, есть ли уже активное приглашение
+  const existingInvite = await prisma.familyInvite.findFirst({
+    where: {
+      familyId: family.id,
+      inviteeId: invitee.id,
+      accepted: false,
+      expiresAt: { gt: new Date() }
+    }
+  })
+  
+  if (existingInvite) {
+    const inviteLink = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/invite?token=${existingInvite.token}`
+    return { success: true, inviteLink }
+  }
 
   const token = crypto.randomBytes(32).toString('hex')
 
