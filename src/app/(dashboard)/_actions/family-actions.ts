@@ -54,7 +54,8 @@ export async function createFamilyInvite(
   return { success: true, inviteLink }
 }
 
-export async function acceptInvite(token: string): Promise<FamilyResult> {
+export async function acceptInvite(formData: FormData): Promise<void> {
+  const token = formData.get('token') as string
   const user = await requireAuth()
 
   const invite = await prisma.familyInvite.findUnique({
@@ -62,10 +63,10 @@ export async function acceptInvite(token: string): Promise<FamilyResult> {
     include: { family: true },
   })
 
-  if (!invite) return { success: false, error: 'Приглашение не найдено' }
-  if (invite.inviteeId !== user.id) return { success: false, error: 'Это приглашение не для вас' }
-  if (invite.accepted) return { success: false, error: 'Приглашение уже принято' }
-  if (invite.expiresAt < new Date()) return { success: false, error: 'Приглашение истекло' }
+  if (!invite) throw new Error('Приглашение не найдено')
+  if (invite.inviteeId !== user.id) throw new Error('Это приглашение не для вас')
+  if (invite.accepted) throw new Error('Приглашение уже принято')
+  if (invite.expiresAt < new Date()) throw new Error('Приглашение истекло')
 
   await prisma.$transaction([
     prisma.familyInvite.update({
@@ -78,6 +79,24 @@ export async function acceptInvite(token: string): Promise<FamilyResult> {
     }),
   ])
 
-  revalidatePath('/')
-  return { success: true }
+  revalidatePath('/family')
+  revalidatePath('/dashboard')
+}
+
+export async function rejectInvite(formData: FormData): Promise<void> {
+  const token = formData.get('token') as string
+  const user = await requireAuth()
+
+  const invite = await prisma.familyInvite.findUnique({
+    where: { token },
+  })
+
+  if (!invite) throw new Error('Приглашение не найдено')
+  if (invite.inviteeId !== user.id) throw new Error('Это приглашение не для вас')
+
+  await prisma.familyInvite.delete({
+    where: { token },
+  })
+
+  revalidatePath('/family')
 }
