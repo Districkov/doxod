@@ -2,7 +2,7 @@
 
 import { useActionState } from 'react'
 import { createGoal } from '@/app/(dashboard)/_actions/goal-actions'
-import type { Currency } from '@/generated/prisma/enums'
+import type { Currency } from '@/generated/prisma'
 
 const CURRENCIES: { value: Currency; label: string }[] = [
   { value: 'RUB', label: '₽ Рубли' },

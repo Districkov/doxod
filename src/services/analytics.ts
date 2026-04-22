@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { convertCurrency, formatCurrency } from '@/lib/currency'
-import type { Currency } from '@/generated/prisma/enums'
+import type { Currency } from '@/generated/prisma'
 
 export async function getFamilyBalance(familyId: string, baseCurrency: Currency) {
   const transactions = await prisma.transaction.findMany({

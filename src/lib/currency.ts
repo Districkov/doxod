@@ -1,4 +1,4 @@
-import { Currency } from '@/generated/prisma/enums'
+import { Currency } from '@/generated/prisma'
 
 const BASE_CURRENCY: Currency = 'RUB'
 

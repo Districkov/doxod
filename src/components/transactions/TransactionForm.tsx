@@ -3,8 +3,8 @@
 import { useActionState } from 'react'
 import { addTransaction } from '@/app/(dashboard)/_actions/transaction-actions'
 import { TRANSACTION_CATEGORIES } from '@/lib/categories'
-import type { Currency } from '@/generated/prisma/enums'
-import type { Goal } from '@/generated/prisma/client'
+import type { Currency } from '@/generated/prisma'
+import type { Goal } from '@/generated/prisma'
 
 const CURRENCIES: { value: Currency; label: string }[] = [
   { value: 'RUB', label: '₽ Рубли' },

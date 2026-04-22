@@ -16,7 +16,7 @@ import {
   Area,
 } from 'recharts'
 import { formatCurrency } from '@/lib/currency'
-import type { Currency } from '@/generated/prisma/enums'
+import type { Currency } from '@/generated/prisma'
 
 const COLORS = [
   '#3b82f6', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6',

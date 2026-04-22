@@ -5,7 +5,7 @@ import { requireFamily } from '@/services/auth'
 import { convertCurrency } from '@/lib/currency'
 import { transactionSchema } from '@/lib/validations'
 import { revalidatePath } from 'next/cache'
-import type { Currency } from '@/generated/prisma/enums'
+import type { Currency } from '@/generated/prisma'
 
 type TransactionResult = { success: boolean; error?: string }
 

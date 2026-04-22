@@ -1,10 +1,11 @@
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 enum TransactionType {
@@ -72,59 +73,43 @@ model Transaction {
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
-  @@index([familyId, date])
-  @@index([familyId, type])
-  @@index([userId])
   @@map("transactions")
 }
 
 model Goal {
-  id             String         @id @default(cuid())
-  name           String
-  targetAmount   Float
-  currentAmount  Float          @default(0)
-  currency       Currency
-  deadline       DateTime?
-  familyId       String
-  family         Family         @relation(fields: [familyId], references: [id])
-  transactions   Transaction[]
-  createdById    String
-  createdBy      User           @relation("GoalCreator", fields: [createdById], references: [id])
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  id            String        @id @default(cuid())
+  name          String
+  targetAmount  Float
+  currentAmount Float         @default(0)
+  currency      Currency
+  deadline      DateTime?
+  familyId      String
+  family        Family        @relation(fields: [familyId], references: [id])
+  createdById   String
+  createdBy     User          @relation("GoalCreator", fields: [createdById], references: [id])
+  transactions  Transaction[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
-  @@index([familyId])
   @@map("goals")
 }
 
 model FamilyInvite {
-  id         String   @id @default(cuid())
-  token      String   @unique
-  familyId   String
-  family     Family   @relation(fields: [familyId], references: [id])
-  inviteeId  String
-  invitee    User     @relation("Invitee", fields: [inviteeId], references: [id])
-  accepted   Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  expiresAt  DateTime
+  id        String   @id @default(cuid())
+  token     String   @unique
+  familyId  String
+  family    Family   @relation(fields: [familyId], references: [id])
+  inviteeId String
+  invitee   User     @relation("Invitee", fields: [inviteeId], references: [id])
+  accepted  Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 
   @@map("family_invites")
 }
 
-model CurrencyRate {
-  id        String   @id @default(cuid())
-  from      Currency
-  to        Currency
-  rate      Float
-  date      DateTime @default(now())
-  createdAt DateTime @default(now())
-
-  @@unique([from, to, date])
-  @@map("currency_rates")
-}
-
 model Account {
-  id                String    @id @default(cuid())
+  id                String  @id @default(cuid())
   userId            String
   type              String
   provider          String
@@ -136,7 +121,7 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@map("accounts")
@@ -150,13 +135,4 @@ model Session {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("sessions")
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
-  @@map("verification_tokens")
 }

@@ -2,9 +2,9 @@
 
 import { Target, Trash2 } from 'lucide-react'
 import { formatCurrency, convertCurrency } from '@/lib/currency'
-import type { Goal } from '@/generated/prisma/client'
-import type { Transaction } from '@/generated/prisma/client'
-import type { Currency } from '@/generated/prisma/enums'
+import type { Goal } from '@/generated/prisma'
+import type { Transaction } from '@/generated/prisma'
+import type { Currency } from '@/generated/prisma'
 
 type GoalWithTransactions = Goal & { transactions: Transaction[] }
 
