@@ -1,5 +1,4 @@
 import { redirect } from 'next/navigation'
-import { auth } from '@/lib/auth'
 import { Sidebar } from '@/components/layout/Sidebar'
 
 export default async function DashboardLayout({
@@ -7,8 +6,16 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const session = await auth()
-  if (!session?.user) redirect('/login')
+  try {
+    const { auth } = await import('@/lib/auth')
+    const session = await auth()
+    if (!session?.user) {
+      redirect('/login')
+    }
+  } catch (error) {
+    console.error('Auth error in dashboard layout:', error)
+    redirect('/login')
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-white dark:bg-zinc-950">
