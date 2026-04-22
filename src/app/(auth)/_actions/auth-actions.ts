@@ -2,11 +2,9 @@
 
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
-import { signIn } from '@/lib/auth'
 import { registerSchema, loginSchema } from '@/lib/validations'
-import { revalidatePath } from 'next/cache'
 
-type ActionResult = { success: boolean; error?: string }
+type ActionResult = { success: boolean; error?: string; email?: string; password?: string }
 
 export async function registerUser(_: ActionResult, formData: FormData): Promise<ActionResult> {
   const raw = {
@@ -41,9 +39,7 @@ export async function registerUser(_: ActionResult, formData: FormData): Promise
     },
   })
 
-  await signIn('credentials', { email: raw.email, password: raw.password, redirect: false })
-  revalidatePath('/')
-  return { success: true }
+  return { success: true, email: raw.email, password: raw.password }
 }
 
 export async function loginUser(_: ActionResult, formData: FormData): Promise<ActionResult> {
@@ -57,11 +53,15 @@ export async function loginUser(_: ActionResult, formData: FormData): Promise<Ac
     return { success: false, error: validated.error.issues[0].message }
   }
 
-  try {
-    await signIn('credentials', { email: raw.email, password: raw.password, redirect: false })
-    revalidatePath('/')
-    return { success: true }
-  } catch {
+  const user = await prisma.user.findUnique({ where: { email: raw.email } })
+  if (!user || !user.passwordHash) {
     return { success: false, error: 'Неверный email или пароль' }
   }
+
+  const isValid = await bcrypt.compare(raw.password, user.passwordHash)
+  if (!isValid) {
+    return { success: false, error: 'Неверный email или пароль' }
+  }
+
+  return { success: true, email: raw.email, password: raw.password }
 }

@@ -1,11 +1,10 @@
 import NextAuth from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
-import { PrismaAdapter } from '@auth/prisma-adapter'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: PrismaAdapter(prisma),
+  trustHost: true,
   session: { strategy: 'jwt' },
   pages: {
     signIn: '/login',
@@ -22,7 +21,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email as string },
-          include: { family: true },
         })
 
         if (!user || !user.passwordHash) return null
@@ -38,7 +36,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           email: user.email,
           name: user.name,
           familyId: user.familyId,
-        } as const
+        }
       },
     }),
   ],
@@ -48,7 +46,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.id = user.id
         token.familyId = user.familyId
       }
-      if (!token.familyId) {
+      if (!token.familyId && token.id) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
           select: { familyId: true },

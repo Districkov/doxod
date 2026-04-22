@@ -2,19 +2,32 @@
 
 import { useActionState } from 'react'
 import { registerUser } from '../_actions/auth-actions'
+import { signIn } from 'next-auth/react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useTransition } from 'react'
+
+type RegisterState = { success: boolean; error?: string; email?: string; password?: string }
 
 export default function RegisterPage() {
-  const [state, formAction, pending] = useActionState(registerUser, { success: false })
+  const [state, formAction, pending] = useActionState<RegisterState, FormData>(registerUser, { success: false })
   const router = useRouter()
+  const [isSigningIn, startSignIn] = useTransition()
 
   useEffect(() => {
-    if (state.success) {
-      router.push('/dashboard')
+    if (state.success && state.email && state.password) {
+      startSignIn(async () => {
+        const result = await signIn('credentials', {
+          email: state.email,
+          password: state.password,
+          redirect: false,
+        })
+        if (result?.ok) {
+          router.push('/dashboard')
+        }
+      })
     }
-  }, [state.success, router])
+  }, [state.success, state.email, state.password, router])
 
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
@@ -86,10 +99,10 @@ export default function RegisterPage() {
 
         <button
           type="submit"
-          disabled={pending}
+          disabled={pending || isSigningIn}
           className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
         >
-          {pending ? 'Создаём...' : 'Создать аккаунт'}
+          {pending ? 'Создаём...' : isSigningIn ? 'Входим...' : 'Создать аккаунт'}
         </button>
       </form>
 
