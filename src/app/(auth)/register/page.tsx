@@ -3,9 +3,18 @@
 import { useActionState } from 'react'
 import { registerUser } from '../_actions/auth-actions'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 
 export default function RegisterPage() {
   const [state, formAction, pending] = useActionState(registerUser, { success: false })
+  const router = useRouter()
+
+  useEffect(() => {
+    if (state.success) {
+      router.push('/dashboard')
+    }
+  }, [state.success, router])
 
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
@@ -57,8 +66,7 @@ export default function RegisterPage() {
             type="password"
             name="password"
             required
-            minLength={6}
-            placeholder="Минимум 6 символов"
+            placeholder="••••••"
             className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
           />
         </div>
@@ -71,8 +79,7 @@ export default function RegisterPage() {
             type="password"
             name="confirmPassword"
             required
-            minLength={6}
-            placeholder="Повторите пароль"
+            placeholder="••••••"
             className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
           />
         </div>
@@ -82,13 +89,13 @@ export default function RegisterPage() {
           disabled={pending}
           className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
         >
-          {pending ? 'Регистрация...' : 'Зарегистрироваться'}
+          {pending ? 'Создаём...' : 'Создать аккаунт'}
         </button>
       </form>
 
       <p className="mt-4 text-center text-sm text-zinc-500 dark:text-zinc-400">
         Уже есть аккаунт?{' '}
-        <Link href="/login" className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400">
+        <Link href="/login" className="text-blue-600 hover:underline dark:text-blue-400">
           Войти
         </Link>
       </p>

@@ -3,9 +3,18 @@
 import { useActionState } from 'react'
 import { loginUser } from '../_actions/auth-actions'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 
 export default function LoginPage() {
   const [state, formAction, pending] = useActionState(loginUser, { success: false })
+  const router = useRouter()
+
+  useEffect(() => {
+    if (state.success) {
+      router.push('/dashboard')
+    }
+  }, [state.success, router])
 
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
@@ -54,13 +63,13 @@ export default function LoginPage() {
           disabled={pending}
           className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
         >
-          {pending ? 'Вход...' : 'Войти'}
+          {pending ? 'Входим...' : 'Войти'}
         </button>
       </form>
 
       <p className="mt-4 text-center text-sm text-zinc-500 dark:text-zinc-400">
         Нет аккаунта?{' '}
-        <Link href="/register" className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400">
+        <Link href="/register" className="text-blue-600 hover:underline dark:text-blue-400">
           Зарегистрироваться
         </Link>
       </p>
