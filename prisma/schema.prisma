@@ -1,0 +1,162 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum Currency {
+  RUB
+  USD
+  EUR
+  GBP
+  KZT
+  UAH
+}
+
+model User {
+  id             String    @id @default(cuid())
+  name           String?
+  email          String    @unique
+  emailVerified  DateTime?
+  passwordHash   String?
+  image          String?
+  familyId       String?
+  family         Family?   @relation(fields: [familyId], references: [id])
+  accounts       Account[]
+  sessions       Session[]
+  transactions   Transaction[]
+  createdGoals   Goal[]    @relation("GoalCreator")
+  invites        FamilyInvite[] @relation("Invitee")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@map("users")
+}
+
+model Family {
+  id            String        @id @default(cuid())
+  name          String
+  baseCurrency  Currency      @default(RUB)
+  members       User[]
+  transactions  Transaction[]
+  goals         Goal[]
+  invites       FamilyInvite[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("families")
+}
+
+model Transaction {
+  id          String          @id @default(cuid())
+  amount      Float
+  type        TransactionType
+  category    String
+  description String?
+  currency    Currency
+  date        DateTime        @default(now())
+  userId      String
+  familyId    String
+  user        User            @relation(fields: [userId], references: [id])
+  family      Family          @relation(fields: [familyId], references: [id])
+  goalId      String?
+  goal        Goal?           @relation(fields: [goalId], references: [id])
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([familyId, date])
+  @@index([familyId, type])
+  @@index([userId])
+  @@map("transactions")
+}
+
+model Goal {
+  id             String         @id @default(cuid())
+  name           String
+  targetAmount   Float
+  currentAmount  Float          @default(0)
+  currency       Currency
+  deadline       DateTime?
+  familyId       String
+  family         Family         @relation(fields: [familyId], references: [id])
+  transactions   Transaction[]
+  createdById    String
+  createdBy      User           @relation("GoalCreator", fields: [createdById], references: [id])
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([familyId])
+  @@map("goals")
+}
+
+model FamilyInvite {
+  id         String   @id @default(cuid())
+  token      String   @unique
+  familyId   String
+  family     Family   @relation(fields: [familyId], references: [id])
+  inviteeId  String
+  invitee    User     @relation("Invitee", fields: [inviteeId], references: [id])
+  accepted   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+
+  @@map("family_invites")
+}
+
+model CurrencyRate {
+  id        String   @id @default(cuid())
+  from      Currency
+  to        Currency
+  rate      Float
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@unique([from, to, date])
+  @@map("currency_rates")
+}
+
+model Account {
+  id                String    @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
