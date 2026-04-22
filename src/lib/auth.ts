@@ -3,8 +3,14 @@ import Credentials from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 
+// Проверяем наличие секрета
+const authSecret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET
+if (!authSecret && process.env.NODE_ENV === 'production') {
+  console.error('CRITICAL: AUTH_SECRET or NEXTAUTH_SECRET is not set!')
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+  secret: authSecret,
   trustHost: true,
   session: { strategy: 'jwt' },
   pages: {
