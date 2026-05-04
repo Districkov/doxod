@@ -76,22 +76,27 @@ async function downloadTelegramFile(fileId: string): Promise<Buffer | null> {
 }
 
 async function recognizeReceipt(imageBuffer: Buffer): Promise<{
-  amount: number
-  category: string
-  description: string
-} | null> {
+  result: { amount: number; category: string; description: string } | null
+  error: string | null
+}> {
   const base64 = imageBuffer.toString('base64')
 
-  const prompt = 'You are a receipt scanner for a Russian finance app. Extract the total amount, store/shop name, and category from the receipt image. Respond ONLY in JSON format: {"amount": number, "description": "store name", "category": "one of: food,transport,housing,entertainment,health,education,clothing,utilities,other_expense"}. If you cannot read the receipt, respond with null.'
+  const prompt = 'You are a receipt/cheque scanner for a Russian personal finance app. Look at the image of a receipt. Extract: 1) the total amount paid (number only), 2) the store or shop name (short), 3) the most fitting category. Respond ONLY with valid JSON, no other text: {"amount": 1234.56, "description": "Store Name", "category": "food"}. Categories: food, transport, housing, entertainment, health, education, clothing, utilities, other_expense. If the image is not a receipt or is unreadable, respond with: null'
 
-  const content = await aiVision(base64, prompt, 200)
-  if (!content || content === 'null') return null
+  const { text, error } = await aiVision(base64, prompt, 300)
+  
+  if (error) return { result: null, error }
+  if (!text || text === 'null') return { result: null, error: 'AI вернул null — фото не похоже на чек' }
 
   try {
-    const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-    return JSON.parse(cleaned)
+    const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+    const parsed = JSON.parse(cleaned)
+    if (!parsed.amount || typeof parsed.amount !== 'number') {
+      return { result: null, error: 'AI не нашёл сумму в ответе: ' + text.slice(0, 150) }
+    }
+    return { result: parsed, error: null }
   } catch {
-    return null
+    return { result: null, error: 'AI вернул не JSON: ' + text.slice(0, 150) }
   }
 }
 
@@ -237,9 +242,11 @@ export async function POST(req: NextRequest) {
       return sendMarkdown(chatId, '❌ Не удалось скачать фото. Попробуй ещё раз.')
     }
 
-    const receipt = await recognizeReceipt(imageBuffer)
+    const { result: receipt, error: receiptError } = await recognizeReceipt(imageBuffer)
     if (!receipt || !receipt.amount) {
-      return sendMarkdown(chatId, '❌ Не удалось распознать чек. Попробуй:\n— Чёткое фото чека\n— Или добавь вручную: `-500 кофе`')
+      const errMsg = receiptError || 'неизвестная ошибка'
+      console.error('[tg] receipt error:', errMsg)
+      return sendMarkdown(chatId, '❌ Не удалось распознать чек: ' + errMsg + '\n\nПопробуй:\n— Чёткое фото чека\n— Или добавь вручную: -500 кофе')
     }
 
     const category = receipt.category || detectCategory(receipt.description || '')
