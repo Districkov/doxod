@@ -2,9 +2,8 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getFamilyBalance } from '@/services/analytics'
 import { formatCurrency } from '@/lib/currency'
-import { TrendingUp, TrendingDown, Wallet, ArrowLeftRight, Target } from 'lucide-react'
+import { TrendingUp, TrendingDown, Wallet, ArrowLeftRight, Target, PiggyBank } from 'lucide-react'
 import { GoalCard } from '@/components/goals/GoalCard'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import Link from 'next/link'
 
 export default async function DashboardPage() {
@@ -12,7 +11,7 @@ export default async function DashboardPage() {
   if (!session?.user?.familyId) {
     return (
       <div className="flex items-center justify-center">
-        <p className="text-muted-foreground">Сначала создайте или присоединитесь к семье</p>
+        <p className="text-zinc-500">Сначала создайте или присоединитесь к семье</p>
       </div>
     )
   }
@@ -38,140 +37,130 @@ export default async function DashboardPage() {
     include: { user: { select: { name: true } } },
   })
 
-  const stats = [
-    {
-      title: 'Свободно',
-      value: balance.formatted.balance,
-      icon: Wallet,
-      color: 'text-blue-600 dark:text-blue-400',
-      bg: 'bg-blue-100 dark:bg-blue-900/40',
-    },
-    {
-      title: 'В копилках',
-      value: balance.formatted.inGoals,
-      icon: Target,
-      color: 'text-purple-600 dark:text-purple-400',
-      bg: 'bg-purple-100 dark:bg-purple-900/40',
-    },
-    {
-      title: 'Доходы',
-      value: balance.formatted.income,
-      icon: TrendingUp,
-      color: 'text-emerald-600 dark:text-emerald-400',
-      bg: 'bg-emerald-100 dark:bg-emerald-900/40',
-    },
-    {
-      title: 'Расходы',
-      value: balance.formatted.expense,
-      icon: TrendingDown,
-      color: 'text-rose-600 dark:text-rose-400',
-      bg: 'bg-rose-100 dark:bg-rose-900/40',
-    },
-  ]
+  const totalBalance = balance.balance + balance.totalInGoals
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold sm:text-2xl">{family.name}</h1>
-        <p className="text-sm text-muted-foreground">
-          {family.members.length} участник{family.members.length === 1 ? '' : family.members.length < 5 ? 'а' : 'ов'}
+        <p className="text-sm text-zinc-500">{family.name}</p>
+        <h1 className="text-3xl font-bold text-white tracking-tight">
+          {formatCurrency(totalBalance, family.baseCurrency)}
+        </h1>
+        <p className="text-sm text-zinc-500 mt-1">
+          Общий баланс · {family.members.length} участник{family.members.length === 1 ? '' : family.members.length < 5 ? 'а' : 'ов'}
         </p>
       </div>
 
-      <div className="grid gap-3 grid-cols-2 sm:gap-4 sm:grid-cols-4">
-        {stats.map((stat) => (
-          <Card key={stat.title} size="sm">
-            <CardContent className="flex items-center gap-2 sm:gap-3">
-              <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${stat.bg} sm:h-10 sm:w-10 shrink-0`}>
-                <stat.icon className={`h-4 w-4 ${stat.color} sm:h-5 sm:w-5`} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs text-muted-foreground sm:text-sm">{stat.title}</p>
-                <p className="text-base font-bold sm:text-xl truncate">{stat.value}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="grid gap-3 grid-cols-2">
+        <div className="rounded-2xl bg-gradient-to-br from-indigo-500/10 to-indigo-600/5 border border-indigo-500/10 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/20">
+              <Wallet className="h-4 w-4 text-indigo-400" />
+            </div>
+            <span className="text-xs text-indigo-300/70">Свободно</span>
+          </div>
+          <p className="text-lg font-bold text-white">{balance.formatted.balance}</p>
+        </div>
+
+        <div className="rounded-2xl bg-gradient-to-br from-purple-500/10 to-purple-600/5 border border-purple-500/10 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-500/20">
+              <PiggyBank className="h-4 w-4 text-purple-400" />
+            </div>
+            <span className="text-xs text-purple-300/70">В копилках</span>
+          </div>
+          <p className="text-lg font-bold text-white">{balance.formatted.inGoals}</p>
+        </div>
+
+        <div className="rounded-2xl bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border border-emerald-500/10 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/20">
+              <TrendingUp className="h-4 w-4 text-emerald-400" />
+            </div>
+            <span className="text-xs text-emerald-300/70">Доходы</span>
+          </div>
+          <p className="text-lg font-bold text-emerald-400">{balance.formatted.income}</p>
+        </div>
+
+        <div className="rounded-2xl bg-gradient-to-br from-rose-500/10 to-rose-600/5 border border-rose-500/10 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500/20">
+              <TrendingDown className="h-4 w-4 text-rose-400" />
+            </div>
+            <span className="text-xs text-rose-300/70">Расходы</span>
+          </div>
+          <p className="text-lg font-bold text-rose-400">{balance.formatted.expense}</p>
+        </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Последние транзакции</CardTitle>
-              <Link
-                href="/transactions"
-                className="text-sm text-primary hover:underline active:opacity-80"
-              >
-                Все
-              </Link>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {recentTransactions.length === 0 ? (
-              <p className="py-4 text-center text-sm text-muted-foreground">Нет транзакций</p>
-            ) : (
-              <div className="space-y-2 sm:space-y-3">
-                {recentTransactions.map((tx) => (
-                  <div
-                    key={tx.id}
-                    className="flex items-center justify-between rounded-lg px-2 py-2 sm:px-3 active:bg-muted/50"
-                  >
-                    <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                      <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${tx.type === 'INCOME' ? 'bg-emerald-100 dark:bg-emerald-900/40' : 'bg-rose-100 dark:bg-rose-900/40'} shrink-0`}>
-                        <ArrowLeftRight className={`h-3.5 w-3.5 ${tx.type === 'INCOME' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`} />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">{tx.category}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {tx.user.name} · {tx.date.toLocaleDateString('ru-RU')}
-                        </p>
-                      </div>
+        <div className="rounded-2xl border border-[#1e1e2a] bg-[#0c0c12] p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-zinc-200">Последние транзакции</h2>
+            <Link
+              href="/transactions"
+              className="text-xs text-indigo-400 hover:text-indigo-300 active:text-indigo-200"
+            >
+              Все →
+            </Link>
+          </div>
+          {recentTransactions.length === 0 ? (
+            <p className="py-6 text-center text-sm text-zinc-600">Нет транзакций</p>
+          ) : (
+            <div className="space-y-1">
+              {recentTransactions.map((tx) => (
+                <div
+                  key={tx.id}
+                  className="flex items-center justify-between rounded-xl px-3 py-2.5 hover:bg-[#1a1a24] active:bg-[#22222e] transition-colors"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${tx.type === 'INCOME' ? 'bg-emerald-500/15' : 'bg-rose-500/15'} shrink-0`}>
+                      <ArrowLeftRight className={`h-3.5 w-3.5 ${tx.type === 'INCOME' ? 'text-emerald-400' : 'text-rose-400'}`} />
                     </div>
-                    <span
-                      className={`text-sm font-semibold shrink-0 ${
-                        tx.type === 'INCOME'
-                          ? 'text-emerald-600 dark:text-emerald-400'
-                          : 'text-rose-600 dark:text-rose-400'
-                      }`}
-                    >
-                      {tx.type === 'INCOME' ? '+' : '-'}
-                      {formatCurrency(tx.amount, tx.currency)}
-                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-zinc-200 truncate">{tx.category}</p>
+                      <p className="text-[11px] text-zinc-600">
+                        {tx.user.name} · {tx.date.toLocaleDateString('ru-RU')}
+                      </p>
+                    </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Копилки</CardTitle>
-              <Link
-                href="/goals"
-                className="text-sm text-primary hover:underline active:opacity-80"
-              >
-                Все
-              </Link>
+                  <span
+                    className={`text-sm font-semibold shrink-0 ml-2 ${
+                      tx.type === 'INCOME' ? 'text-emerald-400' : 'text-rose-400'
+                    }`}
+                  >
+                    {tx.type === 'INCOME' ? '+' : '-'}
+                    {formatCurrency(tx.amount, tx.currency)}
+                  </span>
+                </div>
+              ))}
             </div>
-          </CardHeader>
-          <CardContent>
-            {family.goals.length === 0 ? (
-              <div className="flex flex-col items-center py-8 text-center">
-                <Target className="mb-2 h-8 w-8 text-muted-foreground/50" />
-                <p className="text-sm text-muted-foreground">Нет активных целей</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {family.goals.map((goal) => (
-                  <GoalCard key={goal.id} goal={goal} baseCurrency={family.baseCurrency} now={now} />
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          )}
+        </div>
+
+        <div className="rounded-2xl border border-[#1e1e2a] bg-[#0c0c12] p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-zinc-200">Копилки</h2>
+            <Link
+              href="/goals"
+              className="text-xs text-indigo-400 hover:text-indigo-300 active:text-indigo-200"
+            >
+              Все →
+            </Link>
+          </div>
+          {family.goals.length === 0 ? (
+            <div className="flex flex-col items-center py-8 text-center">
+              <Target className="mb-2 h-8 w-8 text-zinc-700" />
+              <p className="text-sm text-zinc-600">Нет активных целей</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {family.goals.map((goal) => (
+                <GoalCard key={goal.id} goal={goal} baseCurrency={family.baseCurrency} now={now} />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

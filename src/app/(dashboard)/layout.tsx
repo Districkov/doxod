@@ -20,7 +20,7 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="flex overflow-hidden bg-white dark:bg-zinc-950" style={{ height: '100dvh' }}>
+    <div className="flex overflow-hidden bg-[#050507]" style={{ height: '100dvh' }}>
       <Sidebar />
       <main
         className="flex-1 overflow-y-auto overscroll-contain p-4 pb-20 pt-[calc(56px+1rem)] lg:p-8 lg:pb-8 lg:pt-8"

@@ -23,19 +23,19 @@ export function FamilyInviteForm() {
   }
 
   return (
-    <div className="space-y-4">
-      <form action={formAction} className="flex flex-col gap-3 sm:flex-row">
+    <div className="space-y-3">
+      <form action={formAction} className="flex flex-col gap-2 sm:flex-row">
         <input
           type="email"
           name="email"
           required
           placeholder="email@example.com"
-          className="flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+          className="flex-1 rounded-lg border border-[#1e1e2a] bg-[#111118] px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
         />
         <button
           type="submit"
           disabled={pending}
-          className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50"
+          className="flex items-center justify-center gap-2 rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-600 active:bg-indigo-700 disabled:opacity-50 shadow-lg shadow-indigo-500/20"
         >
           <UserPlus className="h-4 w-4" />
           Пригласить
@@ -43,22 +43,17 @@ export function FamilyInviteForm() {
       </form>
 
       {state.error && (
-        <p className="text-sm text-rose-600 dark:text-rose-400">{state.error}</p>
+        <p className="text-xs text-rose-400">{state.error}</p>
       )}
 
       {state.inviteLink && (
-        <div className="flex items-center gap-2 rounded-lg bg-emerald-50 p-3 dark:bg-emerald-900/20">
-          <input
-            type="text"
-            readOnly
-            value={state.inviteLink}
-            className="flex-1 bg-transparent text-sm text-emerald-700 outline-none dark:text-emerald-400"
-          />
+        <div className="flex items-center gap-2 rounded-lg bg-[#1a1a24] p-3">
+          <code className="flex-1 text-xs text-indigo-300 break-all">{state.inviteLink}</code>
           <button
             onClick={handleCopy}
-            className="text-emerald-600 transition-colors hover:text-emerald-700 dark:text-emerald-400"
+            className="shrink-0 rounded-lg bg-indigo-500/20 p-2 text-indigo-400 transition-colors hover:bg-indigo-500/30 active:bg-indigo-500/40"
           >
-            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
           </button>
         </div>
       )}

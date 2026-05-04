@@ -33,40 +33,37 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Mobile Header */}
       <header
-        className="fixed top-0 left-0 right-0 z-50 flex h-14 items-center justify-between border-b border-zinc-200 bg-white/90 backdrop-blur-lg px-4 lg:hidden dark:border-zinc-800 dark:bg-zinc-950/90"
+        className="fixed top-0 left-0 right-0 z-50 flex h-14 items-center justify-between border-b border-[#1e1e2a] bg-[#050507]/80 backdrop-blur-xl px-4 lg:hidden"
         style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
       >
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/20">
             <LayoutDashboard className="h-4 w-4" />
           </div>
-          <span className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Доход</span>
+          <span className="text-lg font-bold text-white">Доход</span>
         </div>
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="flex h-10 w-10 items-center justify-center rounded-lg text-zinc-600 hover:bg-zinc-100 active:bg-zinc-200 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:active:bg-zinc-700"
+          className="flex h-10 w-10 items-center justify-center rounded-xl text-zinc-400 hover:bg-[#1a1a24] active:bg-[#22222e]"
         >
           {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </header>
 
-      {/* Mobile Overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}
 
-      {/* Desktop Sidebar */}
-      <aside className="hidden h-full w-64 flex-col border-r border-zinc-200 bg-zinc-50 lg:flex dark:border-zinc-800 dark:bg-zinc-950">
-        <div className="flex h-16 items-center gap-2 px-6">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white">
+      <aside className="hidden h-full w-64 flex-col border-r border-[#1e1e2a] bg-[#050507] lg:flex">
+        <div className="flex h-16 items-center gap-3 px-6">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/20">
             <LayoutDashboard className="h-4 w-4" />
           </div>
-          <span className="text-lg font-bold text-zinc-900 dark:text-zinc-100">Доход</span>
+          <span className="text-lg font-bold text-white">Доход</span>
         </div>
 
         <nav className="flex-1 space-y-1 px-3">
@@ -76,10 +73,10 @@ export function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
                   isActive
-                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                    : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100'
+                    ? 'bg-indigo-500/10 text-indigo-400 shadow-sm shadow-indigo-500/5'
+                    : 'text-zinc-500 hover:bg-[#1a1a24] hover:text-zinc-300 active:bg-[#22222e]'
                 }`}
               >
                 <item.icon className="h-4 w-4" />
@@ -89,10 +86,10 @@ export function Sidebar() {
           })}
         </nav>
 
-        <div className="border-t border-zinc-200 p-3 dark:border-zinc-800">
+        <div className="border-t border-[#1e1e2a] p-3">
           <button
             onClick={() => signOut({ callbackUrl: '/login' })}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-zinc-500 transition-colors hover:bg-[#1a1a24] hover:text-zinc-300 active:bg-[#22222e]"
           >
             <LogOut className="h-4 w-4" />
             Выйти
@@ -100,9 +97,8 @@ export function Sidebar() {
         </div>
       </aside>
 
-      {/* Mobile Sidebar Drawer */}
       <aside
-        className={`fixed top-14 left-0 z-40 w-64 transform border-r border-zinc-200 bg-zinc-50/95 backdrop-blur-lg transition-transform duration-200 ease-out lg:hidden dark:border-zinc-800 dark:bg-zinc-950/95 ${
+        className={`fixed top-14 left-0 z-40 w-64 transform border-r border-[#1e1e2a] bg-[#050507]/95 backdrop-blur-xl transition-transform duration-200 ease-out lg:hidden ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
         style={{
@@ -118,10 +114,10 @@ export function Sidebar() {
                 key={item.href}
                 href={item.href}
                 onClick={() => setIsOpen(false)}
-                className={`flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors active:scale-[0.98] ${
+                className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-all active:scale-[0.98] ${
                   isActive
-                    ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                    : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 active:bg-zinc-200 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 dark:active:bg-zinc-700'
+                    ? 'bg-indigo-500/10 text-indigo-400'
+                    : 'text-zinc-500 hover:bg-[#1a1a24] hover:text-zinc-300'
                 }`}
               >
                 <item.icon className="h-5 w-5" />
@@ -131,7 +127,7 @@ export function Sidebar() {
           })}
           <button
             onClick={() => signOut({ callbackUrl: '/login' })}
-            className="mt-4 flex items-center gap-3 rounded-lg border-t border-zinc-200 px-3 py-3 pt-4 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900 active:bg-zinc-200 dark:border-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100 dark:active:bg-zinc-700"
+            className="mt-4 flex items-center gap-3 rounded-xl border-t border-[#1e1e2a] px-3 py-3 pt-4 text-sm font-medium text-zinc-500 transition-colors hover:bg-[#1a1a24] hover:text-zinc-300 active:bg-[#22222e]"
           >
             <LogOut className="h-5 w-5" />
             Выйти
@@ -139,9 +135,8 @@ export function Sidebar() {
         </nav>
       </aside>
 
-      {/* Mobile Bottom Navigation */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around border-t border-zinc-200 bg-white/90 backdrop-blur-lg px-1 lg:hidden dark:border-zinc-800 dark:bg-zinc-950/90"
+        className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around border-t border-[#1e1e2a] bg-[#050507]/80 backdrop-blur-xl px-1 lg:hidden"
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
         {NAV_ITEMS.map((item) => {
@@ -150,10 +145,10 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center gap-0.5 rounded-lg px-2 py-2 text-xs font-medium transition-colors active:scale-[0.95] min-w-0 flex-1 ${
+              className={`flex flex-col items-center gap-0.5 rounded-xl px-2 py-2 text-xs font-medium transition-all active:scale-[0.95] min-w-0 flex-1 ${
                 isActive
-                  ? 'text-blue-600 dark:text-blue-400'
-                  : 'text-zinc-500 dark:text-zinc-400'
+                  ? 'text-indigo-400'
+                  : 'text-zinc-600'
               }`}
             >
               <item.icon className="h-5 w-5" />

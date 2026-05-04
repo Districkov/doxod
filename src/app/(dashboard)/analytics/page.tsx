@@ -7,7 +7,6 @@ import {
   getMonthlyComparison,
 } from '@/services/analytics'
 import { AnalyticsCharts } from '@/components/analytics/AnalyticsCharts'
-import { Card, CardContent } from '@/components/ui/card'
 
 export default async function AnalyticsPage() {
   const session = await auth()
@@ -26,30 +25,26 @@ export default async function AnalyticsPage() {
   ])
 
   const stats = [
-    { title: 'Общий баланс', value: balance.formatted.balance, color: '' },
-    { title: 'Накопления', value: balance.formatted.income, color: 'text-emerald-600 dark:text-emerald-400' },
-    { title: 'Траты', value: balance.formatted.expense, color: 'text-rose-600 dark:text-rose-400' },
+    { title: 'Общий баланс', value: balance.formatted.balance, color: 'text-white' },
+    { title: 'Накопления', value: balance.formatted.income, color: 'text-emerald-400' },
+    { title: 'Траты', value: balance.formatted.expense, color: 'text-rose-400' },
   ]
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold sm:text-2xl">Аналитика</h1>
-        <div className="text-xs sm:text-sm text-muted-foreground">
-          Валюта: {family.baseCurrency}
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-xl font-bold text-white">Аналитика</h1>
+        <p className="text-xs text-zinc-600 mt-1">Валюта: {family.baseCurrency}</p>
       </div>
 
-      <div className="grid gap-3 grid-cols-2 sm:gap-4 sm:grid-cols-3">
+      <div className="grid gap-3 grid-cols-3">
         {stats.map((stat) => (
-          <Card key={stat.title} size="sm">
-            <CardContent>
-              <p className="text-xs text-muted-foreground sm:text-sm">{stat.title}</p>
-              <p className={`mt-1 text-lg font-bold sm:text-2xl truncate ${stat.color}`}>
-                {stat.value}
-              </p>
-            </CardContent>
-          </Card>
+          <div key={stat.title} className="rounded-2xl border border-[#1e1e2a] bg-[#0c0c12] p-4">
+            <p className="text-[11px] text-zinc-600">{stat.title}</p>
+            <p className={`mt-1 text-base font-bold truncate ${stat.color}`}>
+              {stat.value}
+            </p>
+          </div>
         ))}
       </div>
 

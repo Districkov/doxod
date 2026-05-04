@@ -2,9 +2,7 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { FamilyInviteForm } from '@/components/family/FamilyInviteForm'
 import { InviteActions } from '@/components/family/InviteActions'
-import { Users, Crown, Mail } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { Users, Mail, UserPlus } from 'lucide-react'
 
 export default async function FamilyPage() {
   const session = await auth()
@@ -43,109 +41,88 @@ export default async function FamilyPage() {
   })
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      <h1 className="text-xl font-bold sm:text-2xl">Семья</h1>
+    <div className="space-y-6">
+      <h1 className="text-xl font-bold text-white">Семья</h1>
 
       {incomingInvites.length > 0 && (
-        <Card className="border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-900/20">
-          <CardHeader>
-            <CardTitle className="text-amber-900 dark:text-amber-100">
-              Приглашения ({incomingInvites.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {incomingInvites.map((invite) => (
-                <div key={invite.id} className="flex flex-col gap-2 rounded-lg bg-white/60 p-3 dark:bg-zinc-900/60 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="font-medium text-amber-900 dark:text-amber-100">{invite.family.name}</p>
-                    <p className="text-xs text-amber-700 dark:text-amber-300">
-                      Участники: {invite.family.members.map(m => m.name).join(', ')}
-                    </p>
-                  </div>
-                  <InviteActions token={invite.token} />
+        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5">
+          <h2 className="text-sm font-semibold text-amber-300 mb-3">
+            Приглашения ({incomingInvites.length})
+          </h2>
+          <div className="space-y-2">
+            {incomingInvites.map((invite) => (
+              <div key={invite.id} className="flex flex-col gap-2 rounded-xl bg-amber-500/5 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="font-medium text-amber-200">{invite.family.name}</p>
+                  <p className="text-[11px] text-amber-400/60">
+                    {invite.family.members.map(m => m.name).join(', ')}
+                  </p>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                <InviteActions token={invite.token} />
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {currentFamily ? (
         <>
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Users className="h-5 w-5 text-primary" />
-                <CardTitle>{currentFamily.name}</CardTitle>
-              </div>
-              <CardDescription>
-                Валюта: {currentFamily.baseCurrency}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {currentFamily.members.map((member) => (
-                  <div key={member.id} className="flex items-center gap-3 rounded-lg p-2 active:bg-muted/50">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted">
-                      <span className="text-sm font-medium">
-                        {member.name?.charAt(0)?.toUpperCase() || '?'}
-                      </span>
+          <div className="rounded-2xl border border-[#1e1e2a] bg-[#0c0c12] p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Users className="h-4 w-4 text-indigo-400" />
+              <h2 className="text-sm font-semibold text-zinc-200">{currentFamily.name}</h2>
+              <span className="text-[11px] text-zinc-600 ml-auto">{currentFamily.baseCurrency}</span>
+            </div>
+            <div className="space-y-1">
+              {currentFamily.members.map((member) => (
+                <div key={member.id} className="flex items-center gap-3 rounded-xl p-2.5 hover:bg-[#1a1a24] transition-colors">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-500/15">
+                    <span className="text-xs font-semibold text-indigo-400">
+                      {member.name?.charAt(0)?.toUpperCase() || '?'}
+                    </span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-zinc-200 truncate">{member.name}</p>
+                    <p className="text-[11px] text-zinc-600 truncate">{member.email}</p>
+                  </div>
+                  {member.id === session.user.id && (
+                    <span className="text-[10px] font-medium text-indigo-400/70 bg-indigo-500/10 px-2 py-0.5 rounded-full">Вы</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-[#1e1e2a] bg-[#0c0c12] p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <UserPlus className="h-4 w-4 text-indigo-400" />
+              <h2 className="text-sm font-semibold text-zinc-200">Пригласить участника</h2>
+            </div>
+            <FamilyInviteForm />
+          </div>
+
+          {currentFamily.invites.length > 0 && (
+            <div className="rounded-2xl border border-[#1e1e2a] bg-[#0c0c12] p-5">
+              <h2 className="text-sm font-semibold text-zinc-200 mb-3">Ожидающие приглашения</h2>
+              <div className="space-y-1">
+                {currentFamily.invites.map((invite) => (
+                  <div key={invite.id} className="flex items-center justify-between rounded-xl p-2.5">
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-3.5 w-3.5 text-zinc-600" />
+                      <span className="text-sm text-zinc-400">{invite.invitee.email}</span>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium truncate">{member.name}</p>
-                      <p className="text-xs text-muted-foreground truncate">{member.email}</p>
-                    </div>
-                    {member.id === session.user.id && (
-                      <Badge variant="secondary" className="shrink-0">Вы</Badge>
-                    )}
+                    <span className="text-[10px] font-medium text-zinc-600 bg-[#1a1a24] px-2 py-0.5 rounded-full">Ожидает</span>
                   </div>
                 ))}
               </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Mail className="h-5 w-5 text-primary" />
-                <CardTitle>Пригласить участника</CardTitle>
-              </div>
-              <CardDescription>Отправьте приглашение по email</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <FamilyInviteForm />
-            </CardContent>
-          </Card>
-
-          {currentFamily.invites.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Ожидающие приглашения</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {currentFamily.invites.map((invite) => (
-                    <div key={invite.id} className="flex items-center justify-between rounded-lg p-2">
-                      <div className="flex items-center gap-2">
-                        <Mail className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{invite.invitee.email}</span>
-                      </div>
-                      <Badge variant="outline">Ожидает</Badge>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            </div>
           )}
         </>
       ) : (
-        <Card>
-          <CardContent className="flex flex-col items-center py-12">
-            <Users className="mb-2 h-8 w-8 text-muted-foreground/50" />
-            <p className="text-sm text-muted-foreground">Сначала создайте или присоединитесь к семье</p>
-          </CardContent>
-        </Card>
+        <div className="rounded-2xl border border-[#1e1e2a] bg-[#0c0c12] flex flex-col items-center py-16">
+          <Users className="mb-2 h-8 w-8 text-zinc-700" />
+          <p className="text-sm text-zinc-600">Сначала создайте или присоединитесь к семье</p>
+        </div>
       )}
     </div>
   )
