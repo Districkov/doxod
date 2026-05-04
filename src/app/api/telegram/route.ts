@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { convertCurrency, formatCurrency } from '@/lib/currency'
+import { aiVision } from '@/lib/ai'
 import type { TransactionType, Currency } from '@/generated/prisma'
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
@@ -79,49 +80,14 @@ async function recognizeReceipt(imageBuffer: Buffer): Promise<{
   category: string
   description: string
 } | null> {
-  const apiKey = process.env.OPENAI_API_KEY
-  if (!apiKey) return null
+  const base64 = imageBuffer.toString('base64')
+
+  const prompt = 'You are a receipt scanner for a Russian finance app. Extract the total amount, store/shop name, and category from the receipt image. Respond ONLY in JSON format: {"amount": number, "description": "store name", "category": "one of: food,transport,housing,entertainment,health,education,clothing,utilities,other_expense"}. If you cannot read the receipt, respond with null.'
+
+  const content = await aiVision(base64, prompt, 200)
+  if (!content || content === 'null') return null
 
   try {
-    const base64 = imageBuffer.toString('base64')
-
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a receipt scanner for a Russian finance app. Extract the total amount, store/shop name, and category from the receipt image. Respond ONLY in JSON format: {"amount": number, "description": "store name", "category": "one of: food,transport,housing,entertainment,health,education,clothing,utilities,other_expense"}. If you cannot read the receipt, respond with null.',
-          },
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'image_url',
-                image_url: {
-                  url: `data:image/jpeg;base64,${base64}`,
-                  detail: 'low',
-                },
-              },
-            ],
-          },
-        ],
-        max_tokens: 150,
-        temperature: 0,
-      }),
-    })
-
-    if (!res.ok) return null
-    const data = await res.json()
-    const content = data.choices?.[0]?.message?.content?.trim()
-
-    if (!content || content === 'null') return null
-
     const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
     return JSON.parse(cleaned)
   } catch {

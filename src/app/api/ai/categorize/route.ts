@@ -30,6 +30,10 @@ function ruleBasedCategorize(description: string): string | null {
   return null
 }
 
+const AI_API_KEY = process.env.AI_API_KEY || process.env.OPENAI_API_KEY
+const AI_BASE_URL = process.env.AI_BASE_URL || 'https://openrouter.ai/api/v1'
+const AI_MODEL = process.env.AI_MODEL || 'google/gemma-3-4b-it:free'
+
 export async function POST(req: NextRequest) {
   const { description, type } = await req.json()
 
@@ -42,8 +46,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ category: ruleResult, source: 'rules' })
   }
 
-  const apiKey = process.env.OPENAI_API_KEY
-  if (!apiKey) {
+  if (!AI_API_KEY) {
     return NextResponse.json({ category: type === 'INCOME' ? 'other_income' : 'other_expense', source: 'fallback' })
   }
 
@@ -52,18 +55,19 @@ export async function POST(req: NextRequest) {
       ? 'salary, freelance, investment, gift, other_income'
       : 'food, transport, housing, entertainment, health, education, clothing, utilities, other_expense'
 
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    const res = await fetch(`${AI_BASE_URL}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': `Bearer ${AI_API_KEY}`,
+        ...(AI_BASE_URL.includes('openrouter') ? { 'HTTP-Referer': process.env.NEXTAUTH_URL || 'https://doxod.app' } : {}),
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: AI_MODEL,
         messages: [
           {
             role: 'system',
-            content: `You are a transaction categorizer for a Russian finance app. Given a transaction description, return ONLY one category from: ${categories}. Respond with just the category name, nothing else.`,
+            content: 'You are a transaction categorizer for a Russian finance app. Given a transaction description, return ONLY one category from: ' + categories + '. Respond with just the category name, nothing else.',
           },
           { role: 'user', content: description },
         ],
