@@ -6,6 +6,7 @@ import { signIn } from 'next-auth/react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useTransition } from 'react'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 
 type RegisterState = { success: boolean; error?: string; email?: string; password?: string }
 
@@ -30,88 +31,87 @@ export default function RegisterPage() {
   }, [state.success, state.email, state.password, router])
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-8 dark:border-zinc-800 dark:bg-zinc-900">
-      <div className="mb-6 text-center">
-        <h1 className="text-xl font-bold sm:text-2xl text-zinc-900 dark:text-zinc-100">Регистрация</h1>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-          Создайте аккаунт и семью
+    <Card>
+      <CardHeader className="text-center">
+        <CardTitle className="text-xl sm:text-2xl">Регистрация</CardTitle>
+        <CardDescription>Создайте аккаунт и семью</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {state.error && (
+          <div className="mb-4 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+            {state.error}
+          </div>
+        )}
+
+        <form action={formAction} className="space-y-4">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium">
+              Имя
+            </label>
+            <input
+              type="text"
+              name="name"
+              required
+              placeholder="Иван"
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium">
+              Email
+            </label>
+            <input
+              type="email"
+              name="email"
+              required
+              placeholder="you@example.com"
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium">
+              Пароль
+            </label>
+            <input
+              type="password"
+              name="password"
+              required
+              placeholder="••••••"
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium">
+              Подтвердите пароль
+            </label>
+            <input
+              type="password"
+              name="confirmPassword"
+              required
+              placeholder="••••••"
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={pending || isSigningIn}
+            className="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 active:bg-primary/80 disabled:opacity-50"
+          >
+            {pending ? 'Создаём...' : isSigningIn ? 'Входим...' : 'Создать аккаунт'}
+          </button>
+        </form>
+
+        <p className="mt-4 text-center text-sm text-muted-foreground">
+          Уже есть аккаунт?{' '}
+          <Link href="/login" className="text-primary hover:underline">
+            Войти
+          </Link>
         </p>
-      </div>
-
-      {state.error && (
-        <div className="mb-4 rounded-lg bg-rose-50 p-3 text-sm text-rose-600 dark:bg-rose-900/20 dark:text-rose-400">
-          {state.error}
-        </div>
-      )}
-
-      <form action={formAction} className="space-y-4">
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            Имя
-          </label>
-          <input
-            type="text"
-            name="name"
-            required
-            placeholder="Иван"
-            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-          />
-        </div>
-
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            Email
-          </label>
-          <input
-            type="email"
-            name="email"
-            required
-            placeholder="you@example.com"
-            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-          />
-        </div>
-
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            Пароль
-          </label>
-          <input
-            type="password"
-            name="password"
-            required
-            placeholder="••••••"
-            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-          />
-        </div>
-
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            Подтвердите пароль
-          </label>
-          <input
-            type="password"
-            name="confirmPassword"
-            required
-            placeholder="••••••"
-            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={pending || isSigningIn}
-          className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
-        >
-          {pending ? 'Создаём...' : isSigningIn ? 'Входим...' : 'Создать аккаунт'}
-        </button>
-      </form>
-
-      <p className="mt-4 text-center text-sm text-zinc-500 dark:text-zinc-400">
-        Уже есть аккаунт?{' '}
-        <Link href="/login" className="text-blue-600 hover:underline dark:text-blue-400">
-          Войти
-        </Link>
-      </p>
-    </div>
+      </CardContent>
+    </Card>
   )
 }

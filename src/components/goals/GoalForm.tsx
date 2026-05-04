@@ -19,13 +19,13 @@ export function GoalForm() {
   return (
     <form action={formAction} className="space-y-4">
       {state.error && (
-        <div className="rounded-lg bg-rose-50 p-3 text-sm text-rose-600 dark:bg-rose-900/20 dark:text-rose-400">
+        <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
           {state.error}
         </div>
       )}
 
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+        <label className="mb-1.5 block text-sm font-medium">
           Название цели
         </label>
         <input
@@ -33,13 +33,13 @@ export function GoalForm() {
           name="name"
           required
           placeholder="Например: Отпуск, Машина"
-          className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+          className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          <label className="mb-1.5 block text-sm font-medium">
             Целевая сумма
           </label>
           <input
@@ -49,18 +49,18 @@ export function GoalForm() {
             min="0.01"
             required
             placeholder="0.00"
-            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+            className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          <label className="mb-1.5 block text-sm font-medium">
             Валюта
           </label>
           <select
             name="currency"
             defaultValue="RUB"
-            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+            className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           >
             {CURRENCIES.map((c) => (
               <option key={c.value} value={c.value}>{c.label}</option>
@@ -70,22 +70,22 @@ export function GoalForm() {
       </div>
 
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-          Дедлайн (необязательно)
+        <label className="mb-1.5 block text-sm font-medium">
+          Дедлайн
         </label>
         <input
           type="date"
           name="deadline"
-          className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+          className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         />
       </div>
 
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+        className="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 active:bg-primary/80 disabled:opacity-50"
       >
-        {pending ? 'Создание...' : 'Создать копилку'}
+        {pending ? 'Создаём...' : 'Создать цель'}
       </button>
     </form>
   )

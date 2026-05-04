@@ -4,6 +4,8 @@ import { formatCurrency } from '@/lib/currency'
 import { TransactionForm } from '@/components/transactions/TransactionForm'
 import { deleteTransaction } from '../_actions/transaction-actions'
 import { Trash2 } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 
 export default async function TransactionsPage() {
   const session = await auth()
@@ -23,71 +25,76 @@ export default async function TransactionsPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <h1 className="text-xl font-bold sm:text-2xl text-zinc-900 dark:text-zinc-100">Транзакции</h1>
+      <h1 className="text-xl font-bold sm:text-2xl">Транзакции</h1>
 
       <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
         <div className="lg:col-span-1">
-          <div className="rounded-2xl border border-zinc-200 bg-white p-4 sm:p-6 dark:border-zinc-800 dark:bg-zinc-900">
-            <h2 className="mb-4 font-semibold text-zinc-900 dark:text-zinc-100">
-              Новая транзакция
-            </h2>
-            <TransactionForm goals={family.goals} />
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Новая транзакция</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <TransactionForm goals={family.goals} />
+            </CardContent>
+          </Card>
         </div>
 
         <div className="lg:col-span-2">
-          <div className="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-            <div className="border-b border-zinc-200 p-4 sm:p-6 dark:border-zinc-800">
-              <h2 className="font-semibold text-zinc-900 dark:text-zinc-100">
-                Все транзакции ({transactions.length})
-              </h2>
-            </div>
-            {transactions.length === 0 ? (
-              <p className="p-6 text-center text-sm text-zinc-400">Нет транзакций</p>
-            ) : (
-              <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                {transactions.map((tx) => (
-                  <div
-                    key={tx.id}
-                    className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 active:bg-zinc-50 dark:active:bg-zinc-800/50"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
-                        {tx.category}
-                        {tx.description && (
-                          <span className="ml-2 text-zinc-400">— {tx.description}</span>
-                        )}
-                      </p>
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                        {tx.user.name} · {tx.date.toLocaleDateString('ru-RU')}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0 ml-2">
-                      <span
-                        className={`text-sm font-semibold ${
-                          tx.type === 'INCOME'
-                            ? 'text-emerald-600 dark:text-emerald-400'
-                            : 'text-rose-600 dark:text-rose-400'
-                        }`}
-                      >
-                        {tx.type === 'INCOME' ? '+' : '-'}
-                        {formatCurrency(tx.amount, tx.currency)}
-                      </span>
-                      <form action={deleteTransaction}>
-                        <input type="hidden" name="id" value={tx.id} />
-                        <button
-                          type="submit"
-                          className="text-zinc-400 transition-colors hover:text-rose-500 active:text-rose-600"
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                Все транзакции <Badge variant="secondary" className="ml-2">{transactions.length}</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {transactions.length === 0 ? (
+                <p className="py-6 text-center text-sm text-muted-foreground">Нет транзакций</p>
+              ) : (
+                <div className="divide-y divide-border">
+                  {transactions.map((tx) => (
+                    <div
+                      key={tx.id}
+                      className="flex items-center justify-between py-3 first:pt-0 last:pb-0 active:bg-muted/50 -mx-2 px-2 sm:-mx-3 sm:px-3 rounded-lg"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium truncate">{tx.category}</p>
+                          <Badge variant={tx.type === 'INCOME' ? 'secondary' : 'outline'} className={`text-[10px] ${tx.type === 'INCOME' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400'}`}>
+                            {tx.type === 'INCOME' ? 'Доход' : 'Расход'}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {tx.user.name} · {tx.date.toLocaleDateString('ru-RU')}
+                          {tx.description && ` · ${tx.description}`}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0 ml-2">
+                        <span
+                          className={`text-sm font-semibold ${
+                            tx.type === 'INCOME'
+                              ? 'text-emerald-600 dark:text-emerald-400'
+                              : 'text-rose-600 dark:text-rose-400'
+                          }`}
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </form>
+                          {tx.type === 'INCOME' ? '+' : '-'}
+                          {formatCurrency(tx.amount, tx.currency)}
+                        </span>
+                        <form action={deleteTransaction}>
+                          <input type="hidden" name="id" value={tx.id} />
+                          <button
+                            type="submit"
+                            className="text-muted-foreground transition-colors hover:text-destructive active:text-destructive"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </form>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

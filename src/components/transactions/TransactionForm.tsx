@@ -25,21 +25,21 @@ export function TransactionForm({ goals }: TransactionFormProps) {
   return (
     <form action={formAction} className="space-y-4">
       {state.error && (
-        <div className="rounded-lg bg-rose-50 p-3 text-sm text-rose-600 dark:bg-rose-900/20 dark:text-rose-400">
+        <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
           {state.error}
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          <label className="mb-1.5 block text-sm font-medium">
             Тип
           </label>
           <select
             name="type"
             id="tx-type"
             defaultValue="EXPENSE"
-            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+            className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           >
             <option value="EXPENSE">Расход</option>
             <option value="INCOME">Доход</option>
@@ -47,7 +47,28 @@ export function TransactionForm({ goals }: TransactionFormProps) {
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          <label className="mb-1.5 block text-sm font-medium">
+            Категория
+          </label>
+          <select
+            name="category"
+            id="tx-category"
+            required
+            className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            {TRANSACTION_CATEGORIES.EXPENSE.map((cat) => (
+              <option key={cat.value} value={cat.value}>{cat.label}</option>
+            ))}
+            {TRANSACTION_CATEGORIES.INCOME.map((cat) => (
+              <option key={cat.value} value={cat.value}>{cat.label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+        <div>
+          <label className="mb-1.5 block text-sm font-medium">
             Сумма
           </label>
           <input
@@ -57,42 +78,19 @@ export function TransactionForm({ goals }: TransactionFormProps) {
             min="0.01"
             required
             placeholder="0.00"
-            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+            className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            Категория
-          </label>
-          <select
-            name="category"
-            required
-            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-          >
-            <optgroup label="Доходы">
-              {TRANSACTION_CATEGORIES.INCOME.map((c) => (
-                <option key={c.value} value={c.value}>{c.label}</option>
-              ))}
-            </optgroup>
-            <optgroup label="Расходы">
-              {TRANSACTION_CATEGORIES.EXPENSE.map((c) => (
-                <option key={c.value} value={c.value}>{c.label}</option>
-              ))}
-            </optgroup>
-          </select>
-        </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          <label className="mb-1.5 block text-sm font-medium">
             Валюта
           </label>
           <select
             name="currency"
+            id="tx-currency"
             defaultValue="RUB"
-            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+            className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           >
             {CURRENCIES.map((c) => (
               <option key={c.value} value={c.value}>{c.label}</option>
@@ -102,55 +100,53 @@ export function TransactionForm({ goals }: TransactionFormProps) {
       </div>
 
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+        <label className="mb-1.5 block text-sm font-medium">
           Описание
         </label>
         <input
           type="text"
           name="description"
-          placeholder="Комментарий (необязательно)"
-          className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+          placeholder="Необязательно"
+          className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            Дата
-          </label>
-          <input
-            type="date"
-            name="date"
-            defaultValue={new Date().toISOString().split('T')[0]}
-            required
-            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-          />
-        </div>
-
-        {goals && goals.length > 0 && (
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              Копилка
-            </label>
-            <select
-              name="goalId"
-              className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-            >
-              <option value="">— Не привязывать</option>
-              {goals.map((g) => (
-                <option key={g.id} value={g.id}>{g.name}</option>
-              ))}
-            </select>
-          </div>
-        )}
+      <div>
+        <label className="mb-1.5 block text-sm font-medium">
+          Дата
+        </label>
+        <input
+          type="date"
+          name="date"
+          defaultValue={new Date().toISOString().split('T')[0]}
+          className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+        />
       </div>
+
+      {goals && goals.length > 0 && (
+        <div>
+          <label className="mb-1.5 block text-sm font-medium">
+            Копилка
+          </label>
+          <select
+            name="goalId"
+            id="tx-goal"
+            className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option value="">Не привязывать</option>
+            {goals.map((goal) => (
+              <option key={goal.id} value={goal.id}>{goal.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+        className="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 active:bg-primary/80 disabled:opacity-50"
       >
-        {pending ? 'Добавление...' : 'Добавить транзакцию'}
+        {pending ? 'Добавляем...' : 'Добавить'}
       </button>
     </form>
   )
