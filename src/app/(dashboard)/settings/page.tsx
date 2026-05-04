@@ -3,7 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { ProfileForm } from '@/components/settings/ProfileForm'
 import { FamilySettingsForm } from '@/components/settings/FamilySettingsForm'
 import { LeaveFamilyButton } from '@/components/settings/LeaveFamilyButton'
-import { Settings, User, Users } from 'lucide-react'
+import { CategoryManager } from '@/components/settings/CategoryManager'
+import { Settings, User, Users, Tag } from 'lucide-react'
 
 export default async function SettingsPage() {
   const session = await auth()
@@ -18,7 +19,10 @@ export default async function SettingsPage() {
   const family = user.familyId
     ? await prisma.family.findUnique({
         where: { id: user.familyId },
-        include: { members: { select: { id: true } } },
+        include: {
+          members: { select: { id: true } },
+          categories: true,
+        },
       })
     : null
 
@@ -38,20 +42,30 @@ export default async function SettingsPage() {
       </div>
 
       {family && (
-        <div className="rounded-2xl border border-[#1e1e2a] bg-[#0c0c12] p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <Users className="h-4 w-4 text-indigo-400" />
-            <h2 className="text-sm font-semibold text-zinc-200">Семья</h2>
+        <>
+          <div className="rounded-2xl border border-[#1e1e2a] bg-[#0c0c12] p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Users className="h-4 w-4 text-indigo-400" />
+              <h2 className="text-sm font-semibold text-zinc-200">Семья</h2>
+            </div>
+            <FamilySettingsForm
+              familyName={family.name}
+              currency={family.baseCurrency}
+              memberCount={family.members.length}
+            />
+            <div className="border-t border-[#1e1e2a] pt-4 mt-5">
+              <LeaveFamilyButton />
+            </div>
           </div>
-          <FamilySettingsForm
-            familyName={family.name}
-            currency={family.baseCurrency}
-            memberCount={family.members.length}
-          />
-          <div className="border-t border-[#1e1e2a] pt-4 mt-5">
-            <LeaveFamilyButton />
+
+          <div className="rounded-2xl border border-[#1e1e2a] bg-[#0c0c12] p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Tag className="h-4 w-4 text-indigo-400" />
+              <h2 className="text-sm font-semibold text-zinc-200">Категории</h2>
+            </div>
+            <CategoryManager categories={family.categories} />
           </div>
-        </div>
+        </>
       )}
 
       {!family && (

@@ -22,6 +22,13 @@ enum Currency {
   UAH
 }
 
+enum Frequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
 model User {
   id             String    @id @default(cuid())
   name           String?
@@ -36,6 +43,8 @@ model User {
   transactions   Transaction[]
   createdGoals   Goal[]    @relation("GoalCreator")
   invites        FamilyInvite[] @relation("Invitee")
+  recurringTemplates RecurringTransaction[]
+  telegramChatId String?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
@@ -50,6 +59,9 @@ model Family {
   transactions  Transaction[]
   goals         Goal[]
   invites       FamilyInvite[]
+  categories    Category[]
+  budgets       Budget[]
+  recurring     RecurringTransaction[]
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
@@ -106,6 +118,65 @@ model FamilyInvite {
   createdAt DateTime @default(now())
 
   @@map("family_invites")
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  type      TransactionType
+  icon      String?
+  familyId  String
+  family    Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([name, familyId, type])
+  @@map("categories")
+}
+
+model Budget {
+  id        String   @id @default(cuid())
+  category  String
+  amount    Float
+  period    String   @default("monthly")
+  familyId  String
+  family    Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([category, familyId, period])
+  @@map("budgets")
+}
+
+model RecurringTransaction {
+  id          String          @id @default(cuid())
+  amount      Float
+  type        TransactionType
+  category    String
+  description String?
+  currency    Currency
+  frequency   Frequency
+  nextDate    DateTime
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  familyId    String
+  family      Family          @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  isActive    Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@map("recurring_transactions")
+}
+
+model ExchangeRate {
+  id        String   @id @default(cuid())
+  from      Currency
+  to        Currency
+  rate      Float
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@unique([from, to, date])
+  @@map("exchange_rates")
 }
 
 model Account {

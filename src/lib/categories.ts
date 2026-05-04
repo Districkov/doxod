@@ -1,4 +1,6 @@
-export const TRANSACTION_CATEGORIES = {
+import type { TransactionType } from '@/generated/prisma'
+
+export const DEFAULT_CATEGORIES = {
   INCOME: [
     { value: 'salary', label: 'Зарплата' },
     { value: 'freelance', label: 'Фриланс' },
@@ -19,4 +21,30 @@ export const TRANSACTION_CATEGORIES = {
   ],
 } as const
 
-export type CategoryValue = typeof TRANSACTION_CATEGORIES.INCOME[number]['value'] | typeof TRANSACTION_CATEGORIES.EXPENSE[number]['value']
+export type CategoryValue = typeof DEFAULT_CATEGORIES.INCOME[number]['value'] | typeof DEFAULT_CATEGORIES.EXPENSE[number]['value']
+
+export type CategoryOption = { value: string; label: string; isCustom?: boolean }
+
+export function mergeCategories(
+  defaults: typeof DEFAULT_CATEGORIES,
+  custom: { name: string; type: TransactionType }[]
+): { INCOME: CategoryOption[]; EXPENSE: CategoryOption[] } {
+  const customIncome = custom
+    .filter((c) => c.type === 'INCOME')
+    .map((c) => ({ value: c.name, label: c.name, isCustom: true }))
+
+  const customExpense = custom
+    .filter((c) => c.type === 'EXPENSE')
+    .map((c) => ({ value: c.name, label: c.name, isCustom: true }))
+
+  return {
+    INCOME: [
+      ...defaults.INCOME.map((c) => ({ value: c.value, label: c.label })),
+      ...customIncome,
+    ],
+    EXPENSE: [
+      ...defaults.EXPENSE.map((c) => ({ value: c.value, label: c.label })),
+      ...customExpense,
+    ],
+  }
+}
