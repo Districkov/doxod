@@ -37,7 +37,7 @@ export default async function TransactionsPage() {
 
         <div className="lg:col-span-2">
           <div className="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-            <div className="border-b border-zinc-200 p-6 dark:border-zinc-800">
+            <div className="border-b border-zinc-200 p-4 sm:p-6 dark:border-zinc-800">
               <h2 className="font-semibold text-zinc-900 dark:text-zinc-100">
                 Все транзакции ({transactions.length})
               </h2>
@@ -49,10 +49,10 @@ export default async function TransactionsPage() {
                 {transactions.map((tx) => (
                   <div
                     key={tx.id}
-                    className="flex items-center justify-between px-6 py-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                    className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 active:bg-zinc-50 dark:active:bg-zinc-800/50"
                   >
-                    <div>
-                      <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
                         {tx.category}
                         {tx.description && (
                           <span className="ml-2 text-zinc-400">— {tx.description}</span>
@@ -62,7 +62,7 @@ export default async function TransactionsPage() {
                         {tx.user.name} · {tx.date.toLocaleDateString('ru-RU')}
                       </p>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 shrink-0 ml-2">
                       <span
                         className={`text-sm font-semibold ${
                           tx.type === 'INCOME'
@@ -77,7 +77,7 @@ export default async function TransactionsPage() {
                         <input type="hidden" name="id" value={tx.id} />
                         <button
                           type="submit"
-                          className="text-zinc-400 transition-colors hover:text-rose-500"
+                          className="text-zinc-400 transition-colors hover:text-rose-500 active:text-rose-600"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>

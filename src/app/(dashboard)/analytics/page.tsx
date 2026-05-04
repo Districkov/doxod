@@ -33,22 +33,22 @@ export default async function AnalyticsPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">Общий баланс</p>
-          <p className="mt-1 text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+      <div className="grid gap-3 grid-cols-2 sm:gap-4 sm:grid-cols-3">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-3 sm:p-5 dark:border-zinc-800 dark:bg-zinc-900">
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 sm:text-sm">Общий баланс</p>
+          <p className="mt-1 text-lg font-bold text-zinc-900 dark:text-zinc-100 sm:text-2xl truncate">
             {balance.formatted.balance}
           </p>
         </div>
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">Накопления</p>
-          <p className="mt-1 text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-3 sm:p-5 dark:border-zinc-800 dark:bg-zinc-900">
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 sm:text-sm">Накопления</p>
+          <p className="mt-1 text-lg font-bold text-emerald-600 dark:text-emerald-400 sm:text-2xl truncate">
             {balance.formatted.income}
           </p>
         </div>
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">Траты</p>
-          <p className="mt-1 text-2xl font-bold text-rose-600 dark:text-rose-400">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-3 sm:p-5 col-span-2 sm:col-span-1 dark:border-zinc-800 dark:bg-zinc-900">
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 sm:text-sm">Траты</p>
+          <p className="mt-1 text-lg font-bold text-rose-600 dark:text-rose-400 sm:text-2xl truncate">
             {balance.formatted.expense}
           </p>
         </div>

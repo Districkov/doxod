@@ -53,22 +53,22 @@ export function AnalyticsCharts({
   currency,
 }: AnalyticsChartsProps) {
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-        <h3 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+    <div className="grid gap-4 lg:gap-6 lg:grid-cols-2">
+      <div className="rounded-2xl border border-zinc-200 bg-white p-4 sm:p-6 dark:border-zinc-800 dark:bg-zinc-900">
+        <h3 className="mb-4 text-base font-semibold text-zinc-900 dark:text-zinc-100 sm:text-lg">
           Расходы по категориям
         </h3>
         {categoryData.length === 0 ? (
           <p className="py-8 text-center text-sm text-zinc-400">Нет данных</p>
         ) : (
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={250} className="sm:!h-[300px]">
             <PieChart>
               <Pie
                 data={categoryData}
                 cx="50%"
                 cy="50%"
-                innerRadius={60}
-                outerRadius={100}
+                innerRadius={45}
+                outerRadius={80}
                 paddingAngle={2}
                 dataKey="value"
               >
@@ -85,14 +85,14 @@ export function AnalyticsCharts({
         )}
       </div>
 
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-        <h3 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+      <div className="rounded-2xl border border-zinc-200 bg-white p-4 sm:p-6 dark:border-zinc-800 dark:bg-zinc-900">
+        <h3 className="mb-4 text-base font-semibold text-zinc-900 dark:text-zinc-100 sm:text-lg">
           Доходы vs Расходы
         </h3>
         {monthlyData.length === 0 ? (
           <p className="py-8 text-center text-sm text-zinc-400">Нет данных</p>
         ) : (
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={250} className="sm:!h-[300px]">
             <BarChart data={monthlyData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
               <XAxis dataKey="month" tick={{ fontSize: 12 }} />
@@ -107,14 +107,14 @@ export function AnalyticsCharts({
         )}
       </div>
 
-      <div className="col-span-full rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-        <h3 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+      <div className="col-span-full rounded-2xl border border-zinc-200 bg-white p-4 sm:p-6 dark:border-zinc-800 dark:bg-zinc-900">
+        <h3 className="mb-4 text-base font-semibold text-zinc-900 dark:text-zinc-100 sm:text-lg">
           Динамика баланса
         </h3>
         {balanceHistory.length === 0 ? (
           <p className="py-8 text-center text-sm text-zinc-400">Нет данных</p>
         ) : (
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={250} className="sm:!h-[300px]">
             <AreaChart data={balanceHistory}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
               <XAxis dataKey="date" tick={{ fontSize: 12 }} />

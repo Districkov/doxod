@@ -48,57 +48,57 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-4">
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-900/40">
-              <Wallet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+      <div className="grid gap-3 grid-cols-2 sm:gap-4 sm:grid-cols-4">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-3 sm:p-5 dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-900/40 sm:h-10 sm:w-10">
+              <Wallet className="h-4 w-4 text-blue-600 dark:text-blue-400 sm:h-5 sm:w-5" />
             </div>
-            <div>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">Свободно</p>
-              <p className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
+            <div className="min-w-0">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 sm:text-sm">Свободно</p>
+              <p className="text-base font-bold text-zinc-900 dark:text-zinc-100 sm:text-xl truncate">
                 {balance.formatted.balance}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-100 dark:bg-purple-900/40">
-              <Target className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+        <div className="rounded-2xl border border-zinc-200 bg-white p-3 sm:p-5 dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-100 dark:bg-purple-900/40 sm:h-10 sm:w-10">
+              <Target className="h-4 w-4 text-purple-600 dark:text-purple-400 sm:h-5 sm:w-5" />
             </div>
-            <div>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">В копилках</p>
-              <p className="text-xl font-bold text-purple-600 dark:text-purple-400">
+            <div className="min-w-0">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 sm:text-sm">В копилках</p>
+              <p className="text-base font-bold text-purple-600 dark:text-purple-400 sm:text-xl truncate">
                 {balance.formatted.inGoals}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-900/40">
-              <TrendingUp className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+        <div className="rounded-2xl border border-zinc-200 bg-white p-3 sm:p-5 dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-900/40 sm:h-10 sm:w-10">
+              <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400 sm:h-5 sm:w-5" />
             </div>
-            <div>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">Доходы</p>
-              <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
+            <div className="min-w-0">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 sm:text-sm">Доходы</p>
+              <p className="text-base font-bold text-emerald-600 dark:text-emerald-400 sm:text-xl truncate">
                 {balance.formatted.income}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-100 dark:bg-rose-900/40">
-              <TrendingDown className="h-5 w-5 text-rose-600 dark:text-rose-400" />
+        <div className="rounded-2xl border border-zinc-200 bg-white p-3 sm:p-5 dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-100 dark:bg-rose-900/40 sm:h-10 sm:w-10">
+              <TrendingDown className="h-4 w-4 text-rose-600 dark:text-rose-400 sm:h-5 sm:w-5" />
             </div>
-            <div>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">Расходы</p>
-              <p className="text-xl font-bold text-rose-600 dark:text-rose-400">
+            <div className="min-w-0">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 sm:text-sm">Расходы</p>
+              <p className="text-base font-bold text-rose-600 dark:text-rose-400 sm:text-xl truncate">
                 {balance.formatted.expense}
               </p>
             </div>
@@ -106,15 +106,15 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-4 sm:p-6 dark:border-zinc-800 dark:bg-zinc-900">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-semibold text-zinc-900 dark:text-zinc-100">
               Последние транзакции
             </h2>
             <Link
               href="/transactions"
-              className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400"
+              className="text-sm text-blue-600 hover:text-blue-700 active:text-blue-800 dark:text-blue-400"
             >
               Все
             </Link>
@@ -122,16 +122,16 @@ export default async function DashboardPage() {
           {recentTransactions.length === 0 ? (
             <p className="py-4 text-center text-sm text-zinc-400">Нет транзакций</p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               {recentTransactions.map((tx) => (
                 <div
                   key={tx.id}
-                  className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                  className="flex items-center justify-between rounded-lg px-2 py-2 sm:px-3 active:bg-zinc-100 dark:active:bg-zinc-800"
                 >
-                  <div className="flex items-center gap-3">
-                    <ArrowLeftRight className="h-4 w-4 text-zinc-400" />
-                    <div>
-                      <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                    <ArrowLeftRight className="h-4 w-4 text-zinc-400 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
                         {tx.category}
                       </p>
                       <p className="text-xs text-zinc-500 dark:text-zinc-400">
@@ -140,7 +140,7 @@ export default async function DashboardPage() {
                     </div>
                   </div>
                   <span
-                    className={`text-sm font-semibold ${
+                    className={`text-sm font-semibold shrink-0 ${
                       tx.type === 'INCOME'
                         ? 'text-emerald-600 dark:text-emerald-400'
                         : 'text-rose-600 dark:text-rose-400'
@@ -155,14 +155,14 @@ export default async function DashboardPage() {
           )}
         </div>
 
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-4 sm:p-6 dark:border-zinc-800 dark:bg-zinc-900">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-semibold text-zinc-900 dark:text-zinc-100">
               Копилки
             </h2>
             <Link
               href="/goals"
-              className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400"
+              className="text-sm text-blue-600 hover:text-blue-700 active:text-blue-800 dark:text-blue-400"
             >
               Все
             </Link>

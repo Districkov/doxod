@@ -36,11 +36,11 @@ export default async function GoalsPage() {
 
         <div className="lg:col-span-2">
           {family.goals.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-300 py-16 dark:border-zinc-700">
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-300 py-12 dark:border-zinc-700">
               <p className="text-sm text-zinc-400">Создайте первую финансовую цель</p>
             </div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
               {family.goals.map((goal) => (
                 <GoalCard
                   key={goal.id}

@@ -39,7 +39,7 @@ export function GoalCard({ goal, baseCurrency, onDelete, now }: GoalCardProps) {
 
   return (
     <div
-      className={`group relative overflow-hidden rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm transition-all hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 ${isCompleted ? glowColor : ''}`}
+      className={`group relative overflow-hidden rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition-all hover:shadow-md sm:p-6 dark:border-zinc-800 dark:bg-zinc-900 ${isCompleted ? glowColor : ''}`}
     >
       {isCompleted && (
         <div className="absolute top-3 right-3 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400">
@@ -69,10 +69,10 @@ export function GoalCard({ goal, baseCurrency, onDelete, now }: GoalCardProps) {
         {onDelete && (
           <button
             onClick={() => onDelete(goal.id)}
-            className="opacity-0 transition-opacity group-hover:opacity-100"
+            className="opacity-60 transition-opacity group-hover:opacity-100 lg:opacity-0"
             aria-label="Удалить цель"
           >
-            <Trash2 className="h-4 w-4 text-zinc-400 hover:text-rose-500" />
+            <Trash2 className="h-4 w-4 text-zinc-400 hover:text-rose-500 active:text-rose-600" />
           </button>
         )}
       </div>
