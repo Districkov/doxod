@@ -45,6 +45,7 @@ model User {
   invites        FamilyInvite[] @relation("Invitee")
   recurringTemplates RecurringTransaction[]
   telegramChatId String?
+  telegramLinkToken String? @unique
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 

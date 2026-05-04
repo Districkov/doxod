@@ -4,7 +4,10 @@ import { ProfileForm } from '@/components/settings/ProfileForm'
 import { FamilySettingsForm } from '@/components/settings/FamilySettingsForm'
 import { LeaveFamilyButton } from '@/components/settings/LeaveFamilyButton'
 import { CategoryManager } from '@/components/settings/CategoryManager'
-import { Settings, User, Users, Tag } from 'lucide-react'
+import { TelegramSettings } from '@/components/settings/TelegramSettings'
+import { Settings, User, Users, Tag, MessageCircle } from 'lucide-react'
+
+const BOT_USERNAME = process.env.TELEGRAM_BOT_USERNAME || 'doxod_finances_bot'
 
 export default async function SettingsPage() {
   const session = await auth()
@@ -12,7 +15,10 @@ export default async function SettingsPage() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, name: true, email: true, familyId: true },
+    select: {
+      id: true, name: true, email: true, familyId: true,
+      telegramChatId: true, telegramLinkToken: true,
+    },
   })
   if (!user) return null
 
@@ -39,6 +45,18 @@ export default async function SettingsPage() {
           <h2 className="text-sm font-semibold text-zinc-200">Профиль</h2>
         </div>
         <ProfileForm user={user} />
+      </div>
+
+      <div className="rounded-2xl border border-[#1e1e2a] bg-[#0c0c12] p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <MessageCircle className="h-4 w-4 text-indigo-400" />
+          <h2 className="text-sm font-semibold text-zinc-200">Telegram</h2>
+        </div>
+        <TelegramSettings
+          chatId={user.telegramChatId}
+          linkToken={user.telegramLinkToken}
+          botUsername={BOT_USERNAME}
+        />
       </div>
 
       {family && (
