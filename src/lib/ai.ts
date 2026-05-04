@@ -1,7 +1,7 @@
 const AI_API_KEY = process.env.AI_API_KEY || process.env.OPENAI_API_KEY
 const AI_BASE_URL = process.env.AI_BASE_URL || 'https://openrouter.ai/api/v1'
 const AI_MODEL = process.env.AI_MODEL || 'google/gemma-3-4b-it:free'
-const AI_VISION_MODEL = process.env.AI_VISION_MODEL || 'qwen/qwen2.5-vl-3b-instruct:free'
+const AI_VISION_MODEL = process.env.AI_VISION_MODEL || 'nvidia/nemotron-nano-12b-v2-vl:free'
 
 interface AiMessage {
   role: 'system' | 'user' | 'assistant'
