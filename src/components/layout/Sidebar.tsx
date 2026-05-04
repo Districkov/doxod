@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
-import { LayoutDashboard, ArrowLeftRight, Target, BarChart3, Users, LogOut, Menu, X } from 'lucide-react'
+import { LayoutDashboard, ArrowLeftRight, Target, BarChart3, Users, LogOut, Menu, X, Settings } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
 const NAV_ITEMS = [
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { href: '/goals', label: 'Копилки', icon: Target },
   { href: '/analytics', label: 'Аналитика', icon: BarChart3 },
   { href: '/family', label: 'Семья', icon: Users },
+  { href: '/settings', label: 'Настройки', icon: Settings },
 ]
 
 export function Sidebar() {

@@ -1,9 +1,10 @@
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { getFamilyBalance } from '@/services/analytics'
+import { getFamilyBalance, getBalanceHistory } from '@/services/analytics'
 import { formatCurrency } from '@/lib/currency'
 import { TrendingUp, TrendingDown, Wallet, ArrowLeftRight, Target, PiggyBank } from 'lucide-react'
 import { GoalCard } from '@/components/goals/GoalCard'
+import { DashboardChart } from '@/components/dashboard/DashboardChart'
 import Link from 'next/link'
 
 export default async function DashboardPage() {
@@ -28,7 +29,10 @@ export default async function DashboardPage() {
 
   if (!family) return null
 
-  const balance = await getFamilyBalance(family.id, family.baseCurrency)
+  const [balance, balanceHistory] = await Promise.all([
+    getFamilyBalance(family.id, family.baseCurrency),
+    getBalanceHistory(family.id, family.baseCurrency, 3),
+  ])
 
   const recentTransactions = await prisma.transaction.findMany({
     where: { familyId: family.id },
@@ -38,6 +42,9 @@ export default async function DashboardPage() {
   })
 
   const totalBalance = balance.balance + balance.totalInGoals
+  const savingsRate = balance.totalIncome > 0
+    ? ((balance.totalIncome - balance.totalExpense) / balance.totalIncome * 100)
+    : 0
 
   return (
     <div className="space-y-6">
@@ -91,6 +98,18 @@ export default async function DashboardPage() {
           </div>
           <p className="text-lg font-bold text-rose-400">{balance.formatted.expense}</p>
         </div>
+      </div>
+
+      <div className="rounded-2xl border border-[#1e1e2a] bg-[#0c0c12] p-5">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-sm font-semibold text-zinc-200">Баланс</h2>
+          <div className="flex items-center gap-1.5">
+            <span className={`text-xs font-medium ${savingsRate >= 20 ? 'text-emerald-400' : savingsRate >= 0 ? 'text-amber-400' : 'text-rose-400'}`}>
+              Сбережения {savingsRate.toFixed(0)}%
+            </span>
+          </div>
+        </div>
+        <DashboardChart data={balanceHistory} currency={family.baseCurrency} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
