@@ -144,3 +144,87 @@ export async function getMonthlyComparison(
       expense: Math.round(data.expense * 100) / 100,
     }))
 }
+
+export async function getFamilyBalanceForPeriod(
+  familyId: string,
+  baseCurrency: Currency,
+  from: Date,
+  to: Date
+) {
+  const transactions = await prisma.transaction.findMany({
+    where: { familyId, date: { gte: from, lt: to } },
+    select: { amount: true, type: true, currency: true },
+  })
+
+  let totalIncome = 0
+  let totalExpense = 0
+
+  for (const tx of transactions) {
+    const converted = convertCurrency(tx.amount, tx.currency, baseCurrency)
+    if (tx.type === 'INCOME') totalIncome += converted
+    else totalExpense += converted
+  }
+
+  return {
+    totalIncome: Math.round(totalIncome * 100) / 100,
+    totalExpense: Math.round(totalExpense * 100) / 100,
+    balance: Math.round((totalIncome - totalExpense) * 100) / 100,
+    formatted: {
+      income: formatCurrency(totalIncome, baseCurrency),
+      expense: formatCurrency(totalExpense, baseCurrency),
+      balance: formatCurrency(totalIncome - totalExpense, baseCurrency),
+    },
+  }
+}
+
+export async function getCategoryBreakdownForPeriod(
+  familyId: string,
+  baseCurrency: Currency,
+  type: 'EXPENSE' | 'INCOME',
+  from: Date,
+  to: Date
+) {
+  const transactions = await prisma.transaction.findMany({
+    where: { familyId, type, date: { gte: from, lt: to } },
+    select: { amount: true, category: true, currency: true },
+  })
+
+  const categoryMap = new Map<string, number>()
+  for (const tx of transactions) {
+    const converted = convertCurrency(tx.amount, tx.currency, baseCurrency)
+    categoryMap.set(tx.category, (categoryMap.get(tx.category) || 0) + converted)
+  }
+
+  return Array.from(categoryMap.entries())
+    .map(([name, value]) => ({ name, value: Math.round(value * 100) / 100 }))
+    .sort((a, b) => b.value - a.value)
+}
+
+export async function getMonthlyComparisonTwo(
+  familyId: string,
+  baseCurrency: Currency,
+  currentMonth: string,
+  prevMonth: string
+) {
+  const currentFrom = new Date(currentMonth + '-01')
+  const currentTo = new Date(new Date(currentMonth + '-01').getFullYear(), new Date(currentMonth + '-01').getMonth() + 1, 1)
+  const prevFrom = new Date(prevMonth + '-01')
+  const prevTo = new Date(new Date(prevMonth + '-01').getFullYear(), new Date(prevMonth + '-01').getMonth() + 1, 1)
+
+  const [current, prev] = await Promise.all([
+    getFamilyBalanceForPeriod(familyId, baseCurrency, currentFrom, currentTo),
+    getFamilyBalanceForPeriod(familyId, baseCurrency, prevFrom, prevTo),
+  ])
+
+  const pctChange = (curr: number, prevVal: number) => {
+    if (prevVal === 0) return curr > 0 ? 100 : 0
+    return Math.round(((curr - prevVal) / prevVal) * 10000) / 100
+  }
+
+  return {
+    current,
+    prev,
+    incomeChange: pctChange(current.totalIncome, prev.totalIncome),
+    expenseChange: pctChange(current.totalExpense, prev.totalExpense),
+  }
+}

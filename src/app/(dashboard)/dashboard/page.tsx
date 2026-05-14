@@ -1,15 +1,22 @@
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { getFamilyBalance, getBalanceHistory, getCategoryBreakdown } from '@/services/analytics'
+import { getFamilyBalance, getBalanceHistory, getFamilyBalanceForPeriod, getMonthlyComparisonTwo } from '@/services/analytics'
 import { formatCurrency } from '@/lib/currency'
 import { convertCurrency } from '@/lib/currency'
-import { TrendingUp, TrendingDown, Wallet, ArrowLeftRight, Target, PiggyBank, PieChart } from 'lucide-react'
+import { TrendingUp, TrendingDown, Wallet, ArrowLeftRight, Target, PiggyBank } from 'lucide-react'
 import { GoalCard } from '@/components/goals/GoalCard'
 import { DashboardChart } from '@/components/dashboard/DashboardChart'
 import { BudgetManager } from '@/components/dashboard/BudgetManager'
+import { PeriodSelector } from '@/components/dashboard/PeriodSelector'
+import { MonthComparison } from '@/components/dashboard/MonthComparison'
 import Link from 'next/link'
+import { Suspense } from 'react'
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ month?: string }>
+}) {
   const session = await auth()
   if (!session?.user?.familyId) {
     return (
@@ -19,7 +26,27 @@ export default async function DashboardPage() {
     )
   }
 
+  const params = await searchParams
   const now = new Date().getTime()
+  const today = new Date()
+
+  let selectedYear: number
+  let selectedMonth: number
+
+  if (params.month) {
+    const [y, m] = params.month.split('-').map(Number)
+    selectedYear = y
+    selectedMonth = m - 1
+  } else {
+    selectedYear = today.getFullYear()
+    selectedMonth = today.getMonth()
+  }
+
+  const periodFrom = new Date(selectedYear, selectedMonth, 1)
+  const periodTo = new Date(selectedYear, selectedMonth + 1, 1)
+  const currentMonthKey = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}`
+  const prevMonthDate = new Date(selectedYear, selectedMonth - 1, 1)
+  const prevMonthKey = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}`
 
   const family = await prisma.family.findUnique({
     where: { id: session.user.familyId },
@@ -32,13 +59,15 @@ export default async function DashboardPage() {
 
   if (!family) return null
 
-  const [balance, balanceHistory] = await Promise.all([
+  const [overallBalance, periodBalance, balanceHistory, monthComparison] = await Promise.all([
     getFamilyBalance(family.id, family.baseCurrency),
+    getFamilyBalanceForPeriod(family.id, family.baseCurrency, periodFrom, periodTo),
     getBalanceHistory(family.id, family.baseCurrency, 3),
+    getMonthlyComparisonTwo(family.id, family.baseCurrency, currentMonthKey, prevMonthKey),
   ])
 
   const recentTransactions = await prisma.transaction.findMany({
-    where: { familyId: family.id },
+    where: { familyId: family.id, date: { gte: periodFrom, lt: periodTo } },
     orderBy: { date: 'desc' },
     take: 5,
     include: { user: { select: { name: true } } },
@@ -54,7 +83,7 @@ export default async function DashboardPage() {
       where: {
         familyId: family.id,
         type: 'EXPENSE',
-        date: { gte: monthStart },
+        date: { gte: periodFrom, lt: periodTo },
       },
       select: { amount: true, category: true, currency: true },
     })
@@ -64,9 +93,9 @@ export default async function DashboardPage() {
     }
   }
 
-  const totalBalance = balance.balance + balance.totalInGoals
-  const savingsRate = balance.totalIncome > 0
-    ? ((balance.totalIncome - balance.totalExpense) / balance.totalIncome * 100)
+  const totalBalance = overallBalance.balance + overallBalance.totalInGoals
+  const periodSavingsRate = periodBalance.totalIncome > 0
+    ? ((periodBalance.totalIncome - periodBalance.totalExpense) / periodBalance.totalIncome * 100)
     : 0
 
   return (
@@ -81,15 +110,19 @@ export default async function DashboardPage() {
         </p>
       </div>
 
+      <Suspense fallback={<div className="h-8" />}>
+        <PeriodSelector />
+      </Suspense>
+
       <div className="grid gap-3 grid-cols-2">
         <div className="rounded-2xl bg-gradient-to-br from-indigo-500/10 to-indigo-600/5 border border-indigo-500/10 p-4">
           <div className="flex items-center gap-2 mb-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/20">
               <Wallet className="h-4 w-4 text-indigo-400" />
             </div>
-            <span className="text-xs text-indigo-300/70">Свободно</span>
+            <span className="text-xs text-indigo-300/70">За период</span>
           </div>
-          <p className="text-lg font-bold text-white">{balance.formatted.balance}</p>
+          <p className="text-lg font-bold text-white">{periodBalance.formatted.balance}</p>
         </div>
 
         <div className="rounded-2xl bg-gradient-to-br from-purple-500/10 to-purple-600/5 border border-purple-500/10 p-4">
@@ -99,7 +132,7 @@ export default async function DashboardPage() {
             </div>
             <span className="text-xs text-purple-300/70">В копилках</span>
           </div>
-          <p className="text-lg font-bold text-white">{balance.formatted.inGoals}</p>
+          <p className="text-lg font-bold text-white">{overallBalance.formatted.inGoals}</p>
         </div>
 
         <div className="rounded-2xl bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border border-emerald-500/10 p-4">
@@ -109,7 +142,7 @@ export default async function DashboardPage() {
             </div>
             <span className="text-xs text-emerald-300/70">Доходы</span>
           </div>
-          <p className="text-lg font-bold text-emerald-400">{balance.formatted.income}</p>
+          <p className="text-lg font-bold text-emerald-400">{periodBalance.formatted.income}</p>
         </div>
 
         <div className="rounded-2xl bg-gradient-to-br from-rose-500/10 to-rose-600/5 border border-rose-500/10 p-4">
@@ -119,18 +152,28 @@ export default async function DashboardPage() {
             </div>
             <span className="text-xs text-rose-300/70">Расходы</span>
           </div>
-          <p className="text-lg font-bold text-rose-400">{balance.formatted.expense}</p>
+          <p className="text-lg font-bold text-rose-400">{periodBalance.formatted.expense}</p>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-[#1e1e2a] bg-[#0c0c12] p-5">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-sm font-semibold text-zinc-200">Баланс</h2>
-          <span className={`text-xs font-medium ${savingsRate >= 20 ? 'text-emerald-400' : savingsRate >= 0 ? 'text-amber-400' : 'text-rose-400'}`}>
-            Сбережения {savingsRate.toFixed(0)}%
-          </span>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <MonthComparison
+          current={monthComparison.current}
+          prev={monthComparison.prev}
+          incomeChange={monthComparison.incomeChange}
+          expenseChange={monthComparison.expenseChange}
+          currency={family.baseCurrency}
+        />
+
+        <div className="rounded-2xl border border-[#1e1e2a] bg-[#0c0c12] p-5">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-sm font-semibold text-zinc-200">Баланс</h2>
+            <span className={`text-xs font-medium ${periodSavingsRate >= 20 ? 'text-emerald-400' : periodSavingsRate >= 0 ? 'text-amber-400' : 'text-rose-400'}`}>
+              Сбережения {periodSavingsRate.toFixed(0)}%
+            </span>
+          </div>
+          <DashboardChart data={balanceHistory} currency={family.baseCurrency} />
         </div>
-        <DashboardChart data={balanceHistory} currency={family.baseCurrency} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -163,7 +206,7 @@ export default async function DashboardPage() {
               </Link>
             </div>
             {recentTransactions.length === 0 ? (
-              <p className="py-4 text-center text-sm text-zinc-600">Нет транзакций</p>
+              <p className="py-4 text-center text-sm text-zinc-600">Нет транзакций за этот период</p>
             ) : (
               <div className="space-y-1">
                 {recentTransactions.map((tx) => (

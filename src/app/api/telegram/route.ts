@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { convertCurrency, formatCurrency } from '@/lib/currency'
-import { aiVision } from '@/lib/ai'
+import { categorizeByRules } from '@/lib/categorize'
 import type { TransactionType, Currency } from '@/generated/prisma'
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
@@ -13,28 +13,6 @@ const CURRENCY_MAP: Record<string, Currency> = {
   '£': 'GBP', 'gbp': 'GBP',
   '₸': 'KZT', 'kzt': 'KZT',
   '₴': 'UAH', 'uah': 'UAH',
-}
-
-const CATEGORY_KEYWORDS: Record<string, string> = {
-  'зарплат': 'salary', 'аванс': 'salary', 'оклад': 'salary',
-  'фриланс': 'freelance', 'подработк': 'freelance',
-  'продуктов': 'food', 'магазин': 'food', 'пятерочк': 'food', 'магни': 'food', 'ашан': 'food',
-  'ресторан': 'food', 'кафе': 'food', 'кофе': 'food', 'пицц': 'food',
-  'транспорт': 'transport', 'такси': 'transport', 'яндекс': 'transport', 'метро': 'transport', 'бензин': 'transport',
-  'аренд': 'housing', 'квартир': 'housing', 'ипотек': 'housing',
-  'развлечен': 'entertainment', 'кино': 'entertainment', 'подписк': 'entertainment',
-  'здоровь': 'health', 'врач': 'health', 'аптек': 'health', 'лекарств': 'health',
-  'образовани': 'education', 'курс': 'education',
-  'одежд': 'clothing', 'обувь': 'clothing',
-  'коммуналк': 'utilities', 'электричеств': 'utilities', 'интернет': 'utilities',
-}
-
-function detectCategory(text: string): string {
-  const lower = text.toLowerCase()
-  for (const [keyword, category] of Object.entries(CATEGORY_KEYWORDS)) {
-    if (lower.includes(keyword)) return category
-  }
-  return 'other_expense'
 }
 
 function parseAmount(text: string): { amount: number; currency: Currency; rest: string } | null {
@@ -52,52 +30,6 @@ async function findUserByChatId(chatId: number) {
     where: { telegramChatId: String(chatId) },
     include: { family: true },
   })
-}
-
-async function downloadTelegramFile(fileId: string): Promise<Buffer | null> {
-  try {
-    const fileRes = await fetch(
-      `https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`
-    )
-    const fileData = await fileRes.json()
-    if (!fileData.ok) return null
-
-    const filePath = fileData.result.file_path
-    const imgRes = await fetch(
-      `https://api.telegram.org/file/bot${BOT_TOKEN}/${filePath}`
-    )
-    if (!imgRes.ok) return null
-
-    const arrayBuf = await imgRes.arrayBuffer()
-    return Buffer.from(arrayBuf)
-  } catch {
-    return null
-  }
-}
-
-async function recognizeReceipt(imageBuffer: Buffer): Promise<{
-  result: { amount: number; category: string; description: string } | null
-  error: string | null
-}> {
-  const base64 = imageBuffer.toString('base64')
-
-  const prompt = 'You are a receipt/cheque scanner for a Russian personal finance app. Look at the image of a receipt. Extract: 1) the total amount paid (number only), 2) the store or shop name (short), 3) the most fitting category. Respond ONLY with valid JSON, no other text: {"amount": 1234.56, "description": "Store Name", "category": "food"}. Categories: food, transport, housing, entertainment, health, education, clothing, utilities, other_expense. If the image is not a receipt or is unreadable, respond with: null'
-
-  const { text, error } = await aiVision(base64, prompt, 300)
-  
-  if (error) return { result: null, error }
-  if (!text || text === 'null') return { result: null, error: 'AI вернул null — фото не похоже на чек' }
-
-  try {
-    const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-    const parsed = JSON.parse(cleaned)
-    if (!parsed.amount || typeof parsed.amount !== 'number') {
-      return { result: null, error: 'AI не нашёл сумму в ответе: ' + text.slice(0, 150) }
-    }
-    return { result: parsed, error: null }
-  } catch {
-    return { result: null, error: 'AI вернул не JSON: ' + text.slice(0, 150) }
-  }
 }
 
 export async function POST(req: NextRequest) {
@@ -126,7 +58,6 @@ export async function POST(req: NextRequest) {
         'После привязки:',
         '-500 кофе — расход',
         '+50000 зарплата — доход',
-        '📸 Фото чека — авто-распознавание',
         '/balance — баланс',
         '/goals — копилки',
       ].join('\n')
@@ -163,7 +94,6 @@ export async function POST(req: NextRequest) {
         'Теперь можешь добавлять расходы:',
         '-500 кофе — расход',
         '+50000 зарплата — доход',
-        '📸 Отправь фото чека — я распознаю автоматически',
       ].join('\n')
     )
   }
@@ -177,7 +107,6 @@ export async function POST(req: NextRequest) {
         '-500 продукты — расход',
         '+50000 зарплата — доход',
         '-1000 такси $ — в долларах',
-        '📸 Фото чека — авто-распознавание',
         '/balance — баланс',
         '/goals — копилки',
       ].join('\n')
@@ -230,47 +159,8 @@ export async function POST(req: NextRequest) {
     return sendMarkdown(chatId, list)
   }
 
-  // Photo receipt recognition
-  if (message.photo && Array.isArray(message.photo) && message.photo.length > 0) {
-    const photo = message.photo[message.photo.length - 1]
-    const fileId = photo.file_id
-
-    await sendMarkdown(chatId, '🔍 Распознаю чек...')
-
-    const imageBuffer = await downloadTelegramFile(fileId)
-    if (!imageBuffer) {
-      return sendMarkdown(chatId, '❌ Не удалось скачать фото. Попробуй ещё раз.')
-    }
-
-    const { result: receipt, error: receiptError } = await recognizeReceipt(imageBuffer)
-    if (!receipt || !receipt.amount) {
-      const errMsg = receiptError || 'неизвестная ошибка'
-      console.error('[tg] receipt error:', errMsg)
-      return sendMarkdown(chatId, '❌ Не удалось распознать чек: ' + errMsg + '\n\nПопробуй:\n— Чёткое фото чека\n— Или добавь вручную: -500 кофе')
-    }
-
-    const category = receipt.category || detectCategory(receipt.description || '')
-
-    await prisma.transaction.create({
-      data: {
-        amount: receipt.amount,
-        type: 'EXPENSE',
-        category,
-        description: receipt.description || 'Чек (фото)',
-        currency: user.family?.baseCurrency || 'RUB',
-        userId: user.id,
-        familyId: user.familyId,
-      },
-    })
-
-    return sendMarkdown(
-      chatId,
-      `📸 *Чек распознан*\n\n🔴 Расход: ${formatCurrency(receipt.amount, user.family?.baseCurrency || 'RUB')}\n📁 Категория: ${category}\n📝 Описание: ${receipt.description || '—'}`
-    )
-  }
-
   // Text transaction
-  if (!text) {
+  if (!text && !message.photo) {
     return NextResponse.json({ ok: true })
   }
 
@@ -288,7 +178,7 @@ export async function POST(req: NextRequest) {
   }
 
   const type: TransactionType = isIncome ? 'INCOME' : 'EXPENSE'
-  const category = detectCategory(parsed.rest)
+  const category = categorizeByRules(parsed.rest, type)
   const description = parsed.rest || null
 
   await prisma.transaction.create({

@@ -5,7 +5,6 @@ import { addTransaction } from '@/app/(dashboard)/_actions/transaction-actions'
 import { DEFAULT_CATEGORIES, mergeCategories } from '@/lib/categories'
 import type { Currency, TransactionType, Category } from '@/generated/prisma'
 import type { Goal } from '@/generated/prisma'
-import { Sparkles } from 'lucide-react'
 
 const CURRENCIES: { value: Currency; label: string }[] = [
   { value: 'RUB', label: '₽ Рубли' },
@@ -20,6 +19,22 @@ const inputCls = "w-full rounded-lg border border-[#1e1e2a] bg-[#111118] px-3 py
 const selectCls = "w-full rounded-lg border border-[#1e1e2a] bg-[#111118] px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
 const labelCls = "mb-1.5 block text-xs font-medium text-zinc-500"
 
+const CATEGORY_KEYWORDS: Record<string, string> = {
+  'зарплат': 'salary', 'аванс': 'salary', 'оклад': 'salary',
+  'фриланс': 'freelance', 'подработк': 'freelance',
+  'инвестици': 'investment', 'вклад': 'investment', 'дивиденд': 'investment',
+  'подарок': 'gift', 'премия': 'gift',
+  'продуктов': 'food', 'магазин': 'food', 'пятерочк': 'food', 'магни': 'food', 'ашан': 'food',
+  'ресторан': 'food', 'кафе': 'food', 'кофе': 'food', 'пицц': 'food',
+  'транспорт': 'transport', 'такси': 'transport', 'метро': 'transport', 'бензин': 'transport',
+  'аренд': 'housing', 'квартир': 'housing', 'ипотек': 'housing',
+  'коммуналк': 'utilities', 'электричеств': 'utilities', 'интернет': 'utilities',
+  'развлечен': 'entertainment', 'кино': 'entertainment', 'подписк': 'entertainment',
+  'здоровь': 'health', 'врач': 'health', 'аптек': 'health', 'лекарств': 'health',
+  'образовани': 'education', 'курс': 'education',
+  'одежд': 'clothing', 'обувь': 'clothing',
+}
+
 interface TransactionFormProps {
   goals?: Goal[]
   familyCategories?: Category[]
@@ -28,37 +43,24 @@ interface TransactionFormProps {
 export function TransactionForm({ goals, familyCategories = [] }: TransactionFormProps) {
   const [state, formAction, pending] = useActionState(addTransaction, { success: false })
   const [txType, setTxType] = useState<TransactionType>('EXPENSE')
-  const [aiLoading, setAiLoading] = useState(false)
+  const [selectedCategory, setSelectedCategory] = useState('')
 
   const allCats = mergeCategories(DEFAULT_CATEGORIES, familyCategories.map((c) => ({ name: c.name, type: c.type })))
   const categories = txType === 'INCOME' ? allCats.INCOME : allCats.EXPENSE
 
-  const handleAiCategorize = useCallback(async (desc: string) => {
+  const autoCategorize = useCallback((desc: string) => {
     if (!desc.trim()) return
-    setAiLoading(true)
-    try {
-      const res = await fetch('/api/ai/categorize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: desc, type: txType }),
-      })
-      const data = await res.json()
-      if (data.category) {
-        const select = document.querySelector('select[name="category"]') as HTMLSelectElement | null
-        if (select) {
-          const option = Array.from(select.options).find((o) => o.value === data.category)
-          if (option) {
-            select.value = data.category
-          } else {
-            select.value = data.category
-          }
+    const lower = desc.toLowerCase()
+    for (const [keyword, category] of Object.entries(CATEGORY_KEYWORDS)) {
+      if (lower.includes(keyword)) {
+        const catValues = categories.map(c => c.value)
+        if (catValues.includes(category)) {
+          setSelectedCategory(category)
+          return
         }
       }
-    } catch {
-    } finally {
-      setAiLoading(false)
     }
-  }, [txType])
+  }, [categories])
 
   return (
     <form action={formAction} className="space-y-3">
@@ -72,7 +74,10 @@ export function TransactionForm({ goals, familyCategories = [] }: TransactionFor
           <select
             name="type"
             value={txType}
-            onChange={(e) => setTxType(e.target.value as TransactionType)}
+            onChange={(e) => {
+              setTxType(e.target.value as TransactionType)
+              setSelectedCategory('')
+            }}
             className={selectCls}
           >
             <option value="EXPENSE">Расход</option>
@@ -81,7 +86,14 @@ export function TransactionForm({ goals, familyCategories = [] }: TransactionFor
         </div>
         <div>
           <label className={labelCls}>Категория</label>
-          <select name="category" required className={selectCls}>
+          <select
+            name="category"
+            required
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className={selectCls}
+          >
+            <option value="">Выберите...</option>
             {categories.map((cat) => (
               <option key={cat.value} value={cat.value}>
                 {cat.label}{cat.isCustom ? ' ✦' : ''}
@@ -115,30 +127,13 @@ export function TransactionForm({ goals, familyCategories = [] }: TransactionFor
       </div>
 
       <div>
-        <label className={labelCls}>
-          Описание
-          <button
-            type="button"
-            onClick={() => {
-              const input = document.querySelector('input[name="description"]') as HTMLInputElement | null
-              if (input) handleAiCategorize(input.value)
-            }}
-            disabled={aiLoading}
-            className="ml-2 inline-flex items-center gap-1 text-indigo-400 hover:text-indigo-300 disabled:opacity-50"
-            title="ИИ-категоризация"
-          >
-            <Sparkles className="h-3 w-3" />
-            <span className="text-[10px]">{aiLoading ? '...' : 'ИИ'}</span>
-          </button>
-        </label>
+        <label className={labelCls}>Описание</label>
         <input
           type="text"
           name="description"
           placeholder="Необязательно"
           className={inputCls}
-          onBlur={(e) => {
-            if (e.target.value.trim()) handleAiCategorize(e.target.value)
-          }}
+          onBlur={(e) => autoCategorize(e.target.value)}
         />
       </div>
 
