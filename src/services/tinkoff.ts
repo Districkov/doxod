@@ -61,16 +61,31 @@ export async function loginWithWorker(
     throw new Error('TINKOFF_WORKER_URL не настроен. Деплойте worker/ на Render/Railway.')
   }
 
-  const res = await fetch(`${WORKER_URL}/login`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${WORKER_AUTH_TOKEN}`,
-    },
-    body: JSON.stringify({ phone, password }),
-  })
+  const url = `${WORKER_URL}/login`
+  let res: Response
 
-  const data = await res.json()
+  try {
+    res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${WORKER_AUTH_TOKEN}`,
+      },
+      body: JSON.stringify({ phone, password }),
+      signal: AbortSignal.timeout(90000),
+    })
+  } catch (e) {
+    throw new Error('Воркер не отвечает. Подождите минуту (Render просыпается) и попробуйте снова.')
+  }
+
+  const text = await res.text()
+  let data: any
+  try {
+    data = JSON.parse(text)
+  } catch {
+    throw new Error('Воркер вернул не JSON. Возможно, Render ещё просыпается — подождите минуту и попробуйте снова.')
+  }
+
   if (!res.ok) throw new Error(data.error || 'Ошибка авторизации')
 
   return { sessionId: data.sessionId }
