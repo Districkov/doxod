@@ -1,9 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Building2, Phone, KeyRound, Download, Trash2, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
-
-type Step = 'idle' | 'phone' | 'sms' | 'password' | 'connected'
+import { Building2, Download, Trash2, Loader2, CheckCircle2, AlertCircle, Eye, EyeOff } from 'lucide-react'
 
 const inputCls = "w-full rounded-lg border border-[#1e1e2a] bg-[#111118] px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
 const btnCls = "flex items-center justify-center gap-2 w-full rounded-lg bg-gradient-to-r from-yellow-500 to-yellow-600 px-4 py-2.5 text-sm font-medium text-black transition-all hover:from-yellow-600 hover:to-yellow-700 disabled:opacity-50"
@@ -15,12 +13,9 @@ interface TinkoffSettingsProps {
 }
 
 export function TinkoffSettings({ isConnected, lastSyncAt }: TinkoffSettingsProps) {
-  const [step, setStep] = useState<Step>(isConnected ? 'connected' : 'phone')
   const [phone, setPhone] = useState('')
-  const [code, setCode] = useState('')
   const [password, setPassword] = useState('')
-  const [sessionId, setSessionId] = useState('')
-  const [operationTicket, setOperationTicket] = useState('')
+  const [showPw, setShowPw] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -29,58 +24,18 @@ export function TinkoffSettings({ isConnected, lastSyncAt }: TinkoffSettingsProp
   const [importDays, setImportDays] = useState('30')
   const [importResult, setImportResult] = useState<{ imported: number; skipped: number } | null>(null)
 
-  const handleSendSms = async () => {
+  const handleLogin = async () => {
     setLoading(true)
     setError('')
+    setSuccess('')
     try {
       const res = await fetch('/api/tinkoff/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ step: 'start', phone }),
+        body: JSON.stringify({ phone, password }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
-      setSessionId(data.sessionId)
-      setOperationTicket(data.operationTicket)
-      setStep('sms')
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Ошибка')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleConfirmSms = async () => {
-    setLoading(true)
-    setError('')
-    try {
-      const res = await fetch('/api/tinkoff/auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ step: 'confirm_sms', code, operationTicket, sessionId }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
-      setStep('password')
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Ошибка')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleSetPassword = async () => {
-    setLoading(true)
-    setError('')
-    try {
-      const res = await fetch('/api/tinkoff/auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ step: 'set_password', password, sessionId }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
-      setStep('connected')
       setSuccess('Т-Банк подключён!')
       loadAccounts()
     } catch (e) {
@@ -131,15 +86,68 @@ export function TinkoffSettings({ isConnected, lastSyncAt }: TinkoffSettingsProp
     setError('')
     try {
       await fetch('/api/tinkoff/auth', { method: 'DELETE' })
-      setStep('phone')
       setAccounts([])
       setImportResult(null)
       setSuccess('')
-    } catch (e) {
+      setPhone('')
+      setPassword('')
+    } catch {
       setError('Ошибка отключения')
     } finally {
       setLoading(false)
     }
+  }
+
+  if (!isConnected) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Building2 className="h-4 w-4 text-yellow-400" />
+          <span className="text-sm font-semibold text-zinc-200">Т-Банк</span>
+        </div>
+
+        {error && (
+          <div className="flex items-center gap-2 rounded-lg bg-rose-500/10 p-2.5 text-xs text-rose-400">
+            <AlertCircle className="h-3 w-3 shrink-0" /> {error}
+          </div>
+        )}
+
+        <p className="text-xs text-zinc-500">
+          Введите телефон и пароль от приложения Т-Банка. Данные используются только для авторизации и не сохраняются.
+        </p>
+
+        <input
+          type="tel"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder="+79991234567"
+          className={inputCls}
+        />
+
+        <div className="relative">
+          <input
+            type={showPw ? 'text' : 'password'}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Пароль от приложения Т-Банка"
+            className={inputCls + ' pr-10'}
+            onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPw(!showPw)}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-400"
+          >
+            {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
+
+        <button onClick={handleLogin} disabled={loading || !phone || !password} className={btnCls}>
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Building2 className="h-4 w-4" />}
+          Подключить Т-Банк
+        </button>
+      </div>
+    )
   }
 
   return (
@@ -147,11 +155,9 @@ export function TinkoffSettings({ isConnected, lastSyncAt }: TinkoffSettingsProp
       <div className="flex items-center gap-2">
         <Building2 className="h-4 w-4 text-yellow-400" />
         <span className="text-sm font-semibold text-zinc-200">Т-Банк</span>
-        {step === 'connected' && (
-          <span className="ml-2 flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-400">
-            <CheckCircle2 className="h-3 w-3" /> Подключён
-          </span>
-        )}
+        <span className="ml-2 flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-400">
+          <CheckCircle2 className="h-3 w-3" /> Подключён
+        </span>
       </div>
 
       {error && (
@@ -166,120 +172,57 @@ export function TinkoffSettings({ isConnected, lastSyncAt }: TinkoffSettingsProp
         </div>
       )}
 
-      {step === 'phone' && (
-        <div className="space-y-3">
-          <p className="text-xs text-zinc-500">Введите номер телефона, привязанный к Т-Банку</p>
-          <div className="flex gap-2">
-            <input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="+79991234567"
-              className={inputCls}
-            />
-            <button onClick={handleSendSms} disabled={loading || !phone} className={btnCls + ' w-auto px-4'}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Phone className="h-4 w-4" />}
-            </button>
-          </div>
-        </div>
+      {lastSyncAt && (
+        <p className="text-[11px] text-zinc-600">Последняя синхронизация: {new Date(lastSyncAt).toLocaleString('ru-RU')}</p>
       )}
 
-      {step === 'sms' && (
-        <div className="space-y-3">
-          <p className="text-xs text-zinc-500">Введите SMS-код, отправленный на {phone}</p>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder="123456"
-              maxLength={6}
-              className={inputCls}
-            />
-            <button onClick={handleConfirmSms} disabled={loading || !code} className={btnCls + ' w-auto px-4'}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
-            </button>
-          </div>
-        </div>
+      {accounts.length === 0 && (
+        <button onClick={loadAccounts} disabled={loading} className={btnCls}>
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+          Загрузить счета
+        </button>
       )}
 
-      {step === 'password' && (
+      {accounts.length > 0 && (
         <div className="space-y-3">
-          <p className="text-xs text-zinc-500">Введите пароль от приложения Т-Банка</p>
-          <div className="flex gap-2">
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Пароль"
-              className={inputCls}
-            />
-            <button onClick={handleSetPassword} disabled={loading || !password} className={btnCls + ' w-auto px-4'}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
-            </button>
+          <div>
+            <label className="mb-1 block text-[11px] font-medium text-zinc-500">Счёт</label>
+            <select value={selectedAccount} onChange={(e) => setSelectedAccount(e.target.value)} className={inputCls}>
+              {accounts.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name} ({a.accountType}) — {a.moneyAmount ? `${a.moneyAmount.value.toFixed(2)} ${a.moneyAmount.currency.name}` : '—'}
+                </option>
+              ))}
+            </select>
           </div>
-        </div>
-      )}
 
-      {step === 'connected' && (
-        <div className="space-y-3">
-          {lastSyncAt && (
-            <p className="text-[11px] text-zinc-600">Последняя синхронизация: {new Date(lastSyncAt).toLocaleString('ru-RU')}</p>
-          )}
+          <div>
+            <label className="mb-1 block text-[11px] font-medium text-zinc-500">За период</label>
+            <select value={importDays} onChange={(e) => setImportDays(e.target.value)} className={inputCls}>
+              <option value="7">7 дней</option>
+              <option value="30">30 дней</option>
+              <option value="90">3 месяца</option>
+              <option value="180">6 месяцев</option>
+            </select>
+          </div>
 
-          {accounts.length === 0 && (
-            <button onClick={loadAccounts} disabled={loading} className={btnCls}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-              Загрузить счета
-            </button>
-          )}
+          <button onClick={handleImport} disabled={loading || !selectedAccount} className={btnCls}>
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            Импортировать операции
+          </button>
 
-          {accounts.length > 0 && (
-            <div className="space-y-3">
-              <div>
-                <label className="mb-1 block text-[11px] font-medium text-zinc-500">Счёт</label>
-                <select
-                  value={selectedAccount}
-                  onChange={(e) => setSelectedAccount(e.target.value)}
-                  className={inputCls}
-                >
-                  {accounts.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name} ({a.accountType}) — {a.moneyAmount ? `${a.moneyAmount.value.toFixed(2)} ${a.moneyAmount.currency.name}` : '—'}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-[11px] font-medium text-zinc-500">За период</label>
-                <select value={importDays} onChange={(e) => setImportDays(e.target.value)} className={inputCls}>
-                  <option value="7">7 дней</option>
-                  <option value="30">30 дней</option>
-                  <option value="90">3 месяца</option>
-                  <option value="180">6 месяцев</option>
-                </select>
-              </div>
-
-              <button onClick={handleImport} disabled={loading || !selectedAccount} className={btnCls}>
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                Импортировать операции
-              </button>
-
-              {importResult && (
-                <div className="rounded-lg bg-emerald-500/10 p-2.5 text-xs text-emerald-400">
-                  Импортировано: {importResult.imported}, пропущено (дубли): {importResult.skipped}
-                </div>
-              )}
+          {importResult && (
+            <div className="rounded-lg bg-emerald-500/10 p-2.5 text-xs text-emerald-400">
+              Импортировано: {importResult.imported}, пропущено (дубли): {importResult.skipped}
             </div>
           )}
-
-          <button onClick={handleDisconnect} disabled={loading} className={btnDangerCls}>
-            <Trash2 className="h-4 w-4" />
-            Отключить Т-Банк
-          </button>
         </div>
       )}
+
+      <button onClick={handleDisconnect} disabled={loading} className={btnDangerCls}>
+        <Trash2 className="h-4 w-4" />
+        Отключить Т-Банк
+      </button>
     </div>
   )
 }

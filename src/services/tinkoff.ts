@@ -1,4 +1,33 @@
+import puppeteer from 'puppeteer-core'
+
 const BASE_URL = 'https://www.tbank.ru/api'
+
+function getChromiumPath(): string {
+  const paths = [
+    process.env.CHROME_PATH,
+    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+    process.env.LOCALAPPDATA + '\\Google\\Chrome\\Application\\chrome.exe',
+    '/usr/bin/google-chrome',
+    '/usr/bin/chromium-browser',
+    '/usr/bin/chromium',
+    '/snap/bin/chromium',
+  ]
+  for (const p of paths) {
+    if (p) return p
+  }
+  return '/usr/bin/google-chrome'
+}
+
+interface ApiCookies {
+  sessionId?: string
+}
+
+function makeCookieHeader(cookies: ApiCookies): string {
+  const parts: string[] = []
+  if (cookies.sessionId) parts.push(`sessionId=${cookies.sessionId}`)
+  return parts.join('; ')
+}
 
 interface CommonResponse<T> {
   resultCode: string
@@ -10,23 +39,23 @@ interface CommonResponse<T> {
 async function apiCall<T>(
   path: string,
   params: Record<string, string | number | undefined>,
-  sessionId?: string
+  cookies: ApiCookies
 ): Promise<CommonResponse<T>> {
   const url = new URL(BASE_URL + path)
   for (const [key, val] of Object.entries(params)) {
     if (val !== undefined && val !== '') url.searchParams.set(key, String(val))
   }
-  if (sessionId) url.searchParams.set('sessionId', sessionId)
+  if (cookies.sessionId) url.searchParams.set('sessionId', cookies.sessionId)
 
-  const res = await fetch(url.toString(), {
-    method: 'GET',
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-      'Accept': 'application/json',
-      'Referer': 'https://www.tbank.ru/',
-      'Origin': 'https://www.tbank.ru',
-    },
-  })
+  const headers: Record<string, string> = {
+    'Accept': 'application/json',
+    'Referer': 'https://www.tbank.ru/',
+    'Origin': 'https://www.tbank.ru',
+  }
+  const cookieStr = makeCookieHeader(cookies)
+  if (cookieStr) headers['Cookie'] = cookieStr
+
+  const res = await fetch(url.toString(), { method: 'GET', headers })
 
   if (!res.ok) {
     const text = await res.text()
@@ -41,52 +70,66 @@ async function apiCall<T>(
   return data
 }
 
-export interface TinkoffSession {
-  sessionId: string
-}
-
-export async function createSession(): Promise<TinkoffSession> {
-  const resp = await apiCall<string>('/common/v1/session', {})
-  return { sessionId: resp.payload }
-}
-
-export async function phoneSignUp(
-  sessionId: string,
-  phone: string
-): Promise<{ operationTicket: string }> {
-  const resp = await apiCall<unknown>('/common/v1/sign_up', { phone }, sessionId)
-  if (resp.resultCode !== 'WAITING_CONFIRMATION') {
-    throw new Error('Не удалось отправить SMS: ' + (resp.errorMessage || resp.resultCode))
-  }
-  return { operationTicket: resp.operationTicket || '' }
-}
-
-export async function confirmSms(
-  sessionId: string,
-  code: string,
-  operationTicket: string
-): Promise<void> {
-  const resp = await apiCall<unknown>(
-    '/common/v1/confirm',
-    {
-      initialOperation: 'sign_up',
-      initialOperationTicket: operationTicket,
-      confirmationData: JSON.stringify({ SMSBYID: code }),
-    },
-    sessionId
-  )
-  if (resp.resultCode !== 'OK') {
-    throw new Error('Неверный код: ' + (resp.errorMessage || resp.resultCode))
-  }
-}
-
-export async function passwordSignUp(
-  sessionId: string,
+export async function loginWithPuppeteer(
+  phone: string,
   password: string
-): Promise<void> {
-  const resp = await apiCall<unknown>('/common/v1/sign_up', { password }, sessionId)
-  if (resp.resultCode !== 'OK') {
-    throw new Error('Ошибка пароля: ' + (resp.errorMessage || resp.resultCode))
+): Promise<{ sessionId: string }> {
+  const browser = await puppeteer.launch({
+    executablePath: getChromiumPath(),
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+  })
+
+  try {
+    const page = await browser.newPage()
+    await page.setUserAgent(
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    )
+    await page.setViewport({ width: 1280, height: 800 })
+
+    await page.goto('https://www.tbank.ru/login/', { waitUntil: 'networkidle2', timeout: 30000 })
+
+    await page.waitForSelector('input[name="phone"], input[inputmode="tel"], input[placeholder*="телефон"]', { timeout: 10000 })
+      .catch(() => null)
+
+    const phoneInput = await page.$('input[name="phone"], input[inputmode="tel"], input[placeholder*="телефон"]')
+    if (phoneInput) {
+      await phoneInput.click({ clickCount: 3 })
+      await phoneInput.type(phone, { delay: 50 })
+    }
+
+    await page.waitForSelector('button[type="submit"], button[data-qa-file="loginForm"] button', { timeout: 5000 })
+      .catch(() => null)
+
+    const submitBtn = await page.$('button[type="submit"], button[data-qa-file="loginForm"] button')
+    if (submitBtn) await submitBtn.click()
+
+    await page.waitForSelector('input[type="password"], input[name="password"]', { timeout: 15000 })
+      .catch(() => null)
+
+    const passwordInput = await page.$('input[type="password"], input[name="password"]')
+    if (passwordInput) {
+      await passwordInput.type(password, { delay: 50 })
+    }
+
+    const pwSubmitBtn = await page.$('button[type="submit"], button[data-qa-file="loginForm"] button')
+    if (pwSubmitBtn) await pwSubmitBtn.click()
+
+    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 })
+      .catch(() => new Promise(r => setTimeout(r, 5000)))
+
+    const cookies = await page.cookies('https://www.tbank.ru')
+    const sessionCookie = cookies.find(c => c.name === 'sessionId' || c.name === 'sso_sid')
+
+    if (!sessionCookie?.value) {
+      const html = await page.content()
+      const hasError = html.includes('Неверный') || html.includes('Ошибка') || html.includes('error')
+      throw new Error(hasError ? 'Неверный телефон или пароль' : 'Не удалось получить sessionId. Проверьте телефон/пароль.')
+    }
+
+    return { sessionId: sessionCookie.value }
+  } finally {
+    await browser.close()
   }
 }
 
@@ -99,7 +142,7 @@ export interface TinkoffAccount {
 }
 
 export async function getAccounts(sessionId: string): Promise<TinkoffAccount[]> {
-  const resp = await apiCall<TinkoffAccount[]>('/common/v1/accounts_light_ib', {}, sessionId)
+  const resp = await apiCall<TinkoffAccount[]>('/common/v1/accounts_light_ib', {}, { sessionId })
   return resp.payload || []
 }
 
@@ -131,15 +174,6 @@ export async function getOperations(
   }
   if (to) params.end = to.getTime()
 
-  const resp = await apiCall<TinkoffOperation[]>('/common/v1/operations', params, sessionId)
+  const resp = await apiCall<TinkoffOperation[]>('/common/v1/operations', params, { sessionId })
   return resp.payload || []
-}
-
-export interface TinkoffPingResult {
-  accessLevel: string
-}
-
-export async function ping(sessionId: string): Promise<TinkoffPingResult> {
-  const resp = await apiCall<TinkoffPingResult>('/common/v1/ping', {}, sessionId)
-  return resp.payload
 }
