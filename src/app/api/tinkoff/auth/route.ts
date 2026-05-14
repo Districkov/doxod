@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { loginWithPuppeteer } from '@/services/tinkoff'
-
-export const maxDuration = 60
+import { loginWithWorker } from '@/services/tinkoff'
 
 async function getUser() {
   const session = await auth()
@@ -23,7 +21,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { sessionId } = await loginWithPuppeteer(phone, password)
+    const { sessionId } = await loginWithWorker(phone, password)
 
     await prisma.bankConnection.upsert({
       where: { id: `tinkoff_${user.id}` },

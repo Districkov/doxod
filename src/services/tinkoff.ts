@@ -1,28 +1,6 @@
-import puppeteer from 'puppeteer-core'
-import chromium from '@sparticuz/chromium'
-
 const BASE_URL = 'https://www.tbank.ru/api'
-
-function isVercel(): boolean {
-  return !!process.env.VERCEL || !!process.env.VERCEL_ENV
-}
-
-function getChromiumPath(): string {
-  const paths = [
-    process.env.CHROME_PATH,
-    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-    process.env.LOCALAPPDATA + '\\Google\\Chrome\\Application\\chrome.exe',
-    '/usr/bin/google-chrome',
-    '/usr/bin/chromium-browser',
-    '/usr/bin/chromium',
-    '/snap/bin/chromium',
-  ]
-  for (const p of paths) {
-    if (p) return p
-  }
-  return '/usr/bin/google-chrome'
-}
+const WORKER_URL = process.env.TINKOFF_WORKER_URL || ''
+const WORKER_AUTH_TOKEN = process.env.WORKER_AUTH_TOKEN || 'changeme'
 
 interface ApiCookies {
   sessionId?: string
@@ -75,71 +53,27 @@ async function apiCall<T>(
   return data
 }
 
-export async function loginWithPuppeteer(
+export async function loginWithWorker(
   phone: string,
   password: string
 ): Promise<{ sessionId: string }> {
-  const vercel = isVercel()
-  const executablePath = vercel ? await chromium.executablePath() : getChromiumPath()
-  const browser = await puppeteer.launch({
-    executablePath,
-    headless: true,
-    args: vercel
-      ? [...chromium.args, '--disable-gpu', '--disable-dev-shm-usage']
-      : ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+  if (!WORKER_URL) {
+    throw new Error('TINKOFF_WORKER_URL не настроен. Деплойте worker/ на Render/Railway.')
+  }
+
+  const res = await fetch(`${WORKER_URL}/login`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${WORKER_AUTH_TOKEN}`,
+    },
+    body: JSON.stringify({ phone, password }),
   })
 
-  try {
-    const page = await browser.newPage()
-    await page.setUserAgent(
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    )
-    await page.setViewport({ width: 1280, height: 800 })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error || 'Ошибка авторизации')
 
-    await page.goto('https://www.tbank.ru/login/', { waitUntil: 'networkidle2', timeout: 30000 })
-
-    await page.waitForSelector('input[name="phone"], input[inputmode="tel"], input[placeholder*="телефон"]', { timeout: 10000 })
-      .catch(() => null)
-
-    const phoneInput = await page.$('input[name="phone"], input[inputmode="tel"], input[placeholder*="телефон"]')
-    if (phoneInput) {
-      await phoneInput.click({ clickCount: 3 })
-      await phoneInput.type(phone, { delay: 50 })
-    }
-
-    await page.waitForSelector('button[type="submit"], button[data-qa-file="loginForm"] button', { timeout: 5000 })
-      .catch(() => null)
-
-    const submitBtn = await page.$('button[type="submit"], button[data-qa-file="loginForm"] button')
-    if (submitBtn) await submitBtn.click()
-
-    await page.waitForSelector('input[type="password"], input[name="password"]', { timeout: 15000 })
-      .catch(() => null)
-
-    const passwordInput = await page.$('input[type="password"], input[name="password"]')
-    if (passwordInput) {
-      await passwordInput.type(password, { delay: 50 })
-    }
-
-    const pwSubmitBtn = await page.$('button[type="submit"], button[data-qa-file="loginForm"] button')
-    if (pwSubmitBtn) await pwSubmitBtn.click()
-
-    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 })
-      .catch(() => new Promise(r => setTimeout(r, 5000)))
-
-    const cookies = await page.cookies('https://www.tbank.ru')
-    const sessionCookie = cookies.find(c => c.name === 'sessionId' || c.name === 'sso_sid')
-
-    if (!sessionCookie?.value) {
-      const html = await page.content()
-      const hasError = html.includes('Неверный') || html.includes('Ошибка') || html.includes('error')
-      throw new Error(hasError ? 'Неверный телефон или пароль' : 'Не удалось получить sessionId. Проверьте телефон/пароль.')
-    }
-
-    return { sessionId: sessionCookie.value }
-  } finally {
-    await browser.close()
-  }
+  return { sessionId: data.sessionId }
 }
 
 export interface TinkoffAccount {
