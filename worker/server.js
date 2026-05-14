@@ -108,6 +108,7 @@ app.post('/login', auth, async (req, res) => {
   }
 })
 
+app.get('/', (req, res) => res.json({ service: 'tinkoff-worker', status: 'ok' }))
 app.get('/health', (req, res) => res.json({ ok: true }))
 
 const port = process.env.PORT || 3001

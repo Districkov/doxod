@@ -1,1 +1,13 @@
-Tinkoff INTERNAL_ERROR: 7U0TV4PXX - Данные недоступны. Повторите попытку позже.
+Root DirectoryOptional
+If set, Render runs commands from this directory instead of the repository root. Additionally, code changes outside of this directory do not trigger an auto-deploy. Most commonly used with a monorepo.
+woorker/Dockerfile
+Build Command
+Render runs this command to build your app before each deploy.
+woorker/Dockerfile/ $
+Required
+Start Command
+Render runs this command to start your app with each deploy.
+woorker/Dockerfile/ $
+npm run start
+Required
+Instance Type
