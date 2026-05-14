@@ -53,37 +53,49 @@ async function apiCall<T>(
   return data
 }
 
-async function workerFetch(path: string, body: any): Promise<any> {
+async function workerFetch(path: string, body: any, retries = 2): Promise<any> {
   if (!WORKER_URL) {
     throw new Error('TINKOFF_WORKER_URL не настроен. Деплойте worker/ на Render/Railway.')
   }
 
-  let res: Response
-  try {
-    res = await fetch(`${WORKER_URL}${path}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${WORKER_AUTH_TOKEN}`,
-      },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(90000),
-    })
-  } catch {
-    throw new Error('Воркер не отвечает. Подождите минуту (Render просыпается) и попробуйте снова.')
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    let res: Response
+    try {
+      res = await fetch(`${WORKER_URL}${path}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${WORKER_AUTH_TOKEN}`,
+        },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(90000),
+      })
+    } catch {
+      if (attempt < retries) {
+        await new Promise(r => setTimeout(r, 5000))
+        continue
+      }
+      throw new Error('Воркер не отвечает. Подождите минуту (Render просыпается) и попробуйте снова.')
+    }
+
+    const text = await res.text()
+    let data: any
+    try {
+      data = JSON.parse(text)
+    } catch {
+      if (attempt < retries && (text.includes('<html') || text.includes('<!DOCTYPE'))) {
+        await new Promise(r => setTimeout(r, 5000))
+        continue
+      }
+      throw new Error('Воркер вернул не JSON. Возможно, Render ещё просыпается — подождите минуту.')
+    }
+
+    if (!res.ok) throw new Error(data.error || 'Ошибка')
+
+    return data
   }
 
-  const text = await res.text()
-  let data: any
-  try {
-    data = JSON.parse(text)
-  } catch {
-    throw new Error('Воркер вернул не JSON. Возможно, Render ещё просыпается — подождите минуту.')
-  }
-
-  if (!res.ok) throw new Error(data.error || 'Ошибка')
-
-  return data
+  throw new Error('Воркер не отвечает после нескольких попыток.')
 }
 
 export async function startLogin(phone: string): Promise<{ workerSessionId: string }> {
