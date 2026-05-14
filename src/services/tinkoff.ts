@@ -53,28 +53,23 @@ async function apiCall<T>(
   return data
 }
 
-export async function loginWithWorker(
-  phone: string,
-  password: string
-): Promise<{ sessionId: string }> {
+async function workerFetch(path: string, body: any): Promise<any> {
   if (!WORKER_URL) {
     throw new Error('TINKOFF_WORKER_URL не настроен. Деплойте worker/ на Render/Railway.')
   }
 
-  const url = `${WORKER_URL}/login`
   let res: Response
-
   try {
-    res = await fetch(url, {
+    res = await fetch(`${WORKER_URL}${path}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${WORKER_AUTH_TOKEN}`,
       },
-      body: JSON.stringify({ phone, password }),
+      body: JSON.stringify(body),
       signal: AbortSignal.timeout(90000),
     })
-  } catch (e) {
+  } catch {
     throw new Error('Воркер не отвечает. Подождите минуту (Render просыпается) и попробуйте снова.')
   }
 
@@ -83,11 +78,21 @@ export async function loginWithWorker(
   try {
     data = JSON.parse(text)
   } catch {
-    throw new Error('Воркер вернул не JSON. Возможно, Render ещё просыпается — подождите минуту и попробуйте снова.')
+    throw new Error('Воркер вернул не JSON. Возможно, Render ещё просыпается — подождите минуту.')
   }
 
-  if (!res.ok) throw new Error(data.error || 'Ошибка авторизации')
+  if (!res.ok) throw new Error(data.error || 'Ошибка')
 
+  return data
+}
+
+export async function startLogin(phone: string): Promise<{ workerSessionId: string }> {
+  const data = await workerFetch('/start', { phone })
+  return { workerSessionId: data.sessionId }
+}
+
+export async function confirmLogin(workerSessionId: string, code: string): Promise<{ sessionId: string }> {
+  const data = await workerFetch('/confirm', { sessionId: workerSessionId, code })
   return { sessionId: data.sessionId }
 }
 

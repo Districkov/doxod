@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Building2, Download, Trash2, Loader2, CheckCircle2, AlertCircle, Eye, EyeOff } from 'lucide-react'
+import { Building2, Download, Trash2, Loader2, CheckCircle2, AlertCircle, Phone, KeyRound } from 'lucide-react'
 
 const inputCls = "w-full rounded-lg border border-[#1e1e2a] bg-[#111118] px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
 const btnCls = "flex items-center justify-center gap-2 w-full rounded-lg bg-gradient-to-r from-yellow-500 to-yellow-600 px-4 py-2.5 text-sm font-medium text-black transition-all hover:from-yellow-600 hover:to-yellow-700 disabled:opacity-50"
@@ -13,9 +13,10 @@ interface TinkoffSettingsProps {
 }
 
 export function TinkoffSettings({ isConnected, lastSyncAt }: TinkoffSettingsProps) {
+  const [step, setStep] = useState<'phone' | 'sms' | 'connected'>(isConnected ? 'connected' : 'phone')
   const [phone, setPhone] = useState('')
-  const [password, setPassword] = useState('')
-  const [showPw, setShowPw] = useState(false)
+  const [code, setCode] = useState('')
+  const [workerSessionId, setWorkerSessionId] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -24,19 +25,39 @@ export function TinkoffSettings({ isConnected, lastSyncAt }: TinkoffSettingsProp
   const [importDays, setImportDays] = useState('30')
   const [importResult, setImportResult] = useState<{ imported: number; skipped: number } | null>(null)
 
-  const handleLogin = async () => {
+  const handleStart = async () => {
     setLoading(true)
     setError('')
-    setSuccess('')
     try {
       const res = await fetch('/api/tinkoff/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, password }),
+        body: JSON.stringify({ step: 'start', phone }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setWorkerSessionId(data.workerSessionId)
+      setStep('sms')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Ошибка')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleConfirm = async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const res = await fetch('/api/tinkoff/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ step: 'confirm', code, workerSessionId }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setSuccess('Т-Банк подключён!')
+      setStep('connected')
       loadAccounts()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Ошибка')
@@ -86,11 +107,12 @@ export function TinkoffSettings({ isConnected, lastSyncAt }: TinkoffSettingsProp
     setError('')
     try {
       await fetch('/api/tinkoff/auth', { method: 'DELETE' })
+      setStep('phone')
       setAccounts([])
       setImportResult(null)
       setSuccess('')
       setPhone('')
-      setPassword('')
+      setCode('')
     } catch {
       setError('Ошибка отключения')
     } finally {
@@ -98,7 +120,7 @@ export function TinkoffSettings({ isConnected, lastSyncAt }: TinkoffSettingsProp
     }
   }
 
-  if (!isConnected) {
+  if (step === 'phone') {
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-2">
@@ -113,7 +135,7 @@ export function TinkoffSettings({ isConnected, lastSyncAt }: TinkoffSettingsProp
         )}
 
         <p className="text-xs text-zinc-500">
-          Введите телефон и пароль от веб-версии Т-Банка (tbank.ru), не PIN-код от приложения.
+          Введите номер телефона, привязанный к Т-Банку. На него придёт SMS-код.
         </p>
 
         <input
@@ -122,29 +144,56 @@ export function TinkoffSettings({ isConnected, lastSyncAt }: TinkoffSettingsProp
           onChange={(e) => setPhone(e.target.value)}
           placeholder="+79991234567"
           className={inputCls}
+          onKeyDown={(e) => e.key === 'Enter' && handleStart()}
         />
 
-        <div className="relative">
-          <input
-            type={showPw ? 'text' : 'password'}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Пароль от Т-Банка (не PIN)"
-            className={inputCls + ' pr-10'}
-            onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-          />
-          <button
-            type="button"
-            onClick={() => setShowPw(!showPw)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-400"
-          >
-            {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
+        <button onClick={handleStart} disabled={loading || !phone} className={btnCls}>
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Phone className="h-4 w-4" />}
+          Отправить SMS
+        </button>
+      </div>
+    )
+  }
+
+  if (step === 'sms') {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Building2 className="h-4 w-4 text-yellow-400" />
+          <span className="text-sm font-semibold text-zinc-200">Т-Банк</span>
         </div>
 
-        <button onClick={handleLogin} disabled={loading || !phone || !password} className={btnCls}>
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Building2 className="h-4 w-4" />}
-          Подключить Т-Банк
+        {error && (
+          <div className="flex items-center gap-2 rounded-lg bg-rose-500/10 p-2.5 text-xs text-rose-400">
+            <AlertCircle className="h-3 w-3 shrink-0" /> {error}
+          </div>
+        )}
+
+        <p className="text-xs text-zinc-500">
+          SMS-код отправлен на <span className="text-zinc-300">{phone}</span>
+        </p>
+
+        <input
+          type="text"
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          placeholder="123456"
+          maxLength={6}
+          className={inputCls}
+          onKeyDown={(e) => e.key === 'Enter' && handleConfirm()}
+          autoFocus
+        />
+
+        <button onClick={handleConfirm} disabled={loading || !code} className={btnCls}>
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
+          Подтвердить
+        </button>
+
+        <button
+          onClick={() => { setStep('phone'); setError('') }}
+          className="text-xs text-zinc-600 hover:text-zinc-400 underline"
+        >
+          Изменить номер
         </button>
       </div>
     )

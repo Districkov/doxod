@@ -35,11 +35,23 @@ async function getChromiumPath() {
   }
 }
 
-app.post('/login', auth, async (req, res) => {
-  const { phone, password } = req.body
-  if (!phone || !password) {
-    return res.status(400).json({ error: 'phone and password required' })
+const sessions = new Map()
+
+function cleanupOldSessions() {
+  const now = Date.now()
+  for (const [id, s] of sessions) {
+    if (now - s.createdAt > 300000) {
+      s.browser?.close().catch(() => {})
+      sessions.delete(id)
+    }
   }
+}
+
+setInterval(cleanupOldSessions, 60000)
+
+app.post('/start', auth, async (req, res) => {
+  const { phone } = req.body
+  if (!phone) return res.status(400).json({ error: 'phone required' })
 
   let browser
   try {
@@ -62,31 +74,54 @@ app.post('/login', auth, async (req, res) => {
 
     await page.goto('https://www.tbank.ru/login/', { waitUntil: 'networkidle2', timeout: 30000 })
 
-    await page.waitForSelector('input[name="phone"], input[inputmode="tel"], input[placeholder*="телефон"]', { timeout: 10000 })
-      .catch(() => null)
+    await page.waitForSelector('input[name="phone"], input[inputmode="tel"], input[placeholder*="телефон"], input[type="tel"]', { timeout: 10000 })
 
-    const phoneInput = await page.$('input[name="phone"], input[inputmode="tel"], input[placeholder*="телефон"]')
-    if (phoneInput) {
-      await phoneInput.click({ clickCount: 3 })
-      await phoneInput.type(phone, { delay: 50 })
+    const phoneInput = await page.$('input[name="phone"], input[inputmode="tel"], input[placeholder*="телефон"], input[type="tel"]')
+    if (!phoneInput) {
+      await browser.close()
+      return res.status(400).json({ error: 'Не найдено поле ввода телефона' })
     }
 
-    await page.waitForSelector('button[type="submit"], button[data-qa-file="loginForm"] button', { timeout: 5000 })
-      .catch(() => null)
+    await phoneInput.click({ clickCount: 3 })
+    await phoneInput.type(phone, { delay: 50 })
 
-    const submitBtn = await page.$('button[type="submit"], button[data-qa-file="loginForm"] button')
+    await page.waitForSelector('button[type="submit"], button[data-qa-file="loginForm"] button, button[data-qa-type="button"]', { timeout: 5000 })
+
+    const submitBtn = await page.$('button[type="submit"], button[data-qa-file="loginForm"] button, button[data-qa-type="button"]')
     if (submitBtn) await submitBtn.click()
 
-    await page.waitForSelector('input[type="password"], input[name="password"]', { timeout: 15000 })
-      .catch(() => null)
+    const sessionId = crypto.randomUUID()
+    sessions.set(sessionId, { browser, page, createdAt: Date.now() })
 
-    const passwordInput = await page.$('input[type="password"], input[name="password"]')
-    if (passwordInput) {
-      await passwordInput.type(password, { delay: 50 })
+    res.json({ status: 'sms_sent', sessionId })
+  } catch (e) {
+    if (browser) await browser.close()
+    res.status(500).json({ error: e.message || 'Unknown error' })
+  }
+})
+
+app.post('/confirm', auth, async (req, res) => {
+  const { sessionId, code } = req.body
+  if (!sessionId || !code) return res.status(400).json({ error: 'sessionId and code required' })
+
+  const s = sessions.get(sessionId)
+  if (!s) return res.status(400).json({ error: 'Сессия истекла. Начните заново.' })
+
+  try {
+    const { page, browser } = s
+
+    await page.waitForSelector('input[name="code"], input[inputmode="numeric"], input[placeholder*="код"], input[type="text"]', { timeout: 10000 })
+
+    const codeInput = await page.$('input[name="code"], input[inputmode="numeric"], input[placeholder*="код"], input[type="text"]')
+    if (!codeInput) {
+      throw new Error('Не найдено поле ввода кода')
     }
 
-    const pwSubmitBtn = await page.$('button[type="submit"], button[data-qa-file="loginForm"] button')
-    if (pwSubmitBtn) await pwSubmitBtn.click()
+    await codeInput.click({ clickCount: 3 })
+    await codeInput.type(code, { delay: 50 })
+
+    const submitBtn = await page.$('button[type="submit"], button[data-qa-type="button"]')
+    if (submitBtn) await submitBtn.click()
 
     await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 })
       .catch(() => new Promise(r => setTimeout(r, 5000)))
@@ -96,15 +131,22 @@ app.post('/login', auth, async (req, res) => {
 
     if (!sessionCookie?.value) {
       const html = await page.content()
-      const hasError = html.includes('Неверный') || html.includes('Ошибка') || html.includes('error')
-      return res.status(400).json({ error: hasError ? 'Неверный телефон или пароль' : 'Не удалось получить sessionId' })
+      const hasError = html.includes('Неверный') || html.includes('неверный') || html.includes('Ошибка')
+      throw new Error(hasError ? 'Неверный SMS-код' : 'Не удалось войти. Попробуйте снова.')
     }
+
+    sessions.delete(sessionId)
+    await browser.close()
 
     res.json({ sessionId: sessionCookie.value })
   } catch (e) {
-    res.status(500).json({ error: e.message || 'Unknown error' })
-  } finally {
-    if (browser) await browser.close()
+    if (e.message.includes('Неверный') || e.message.includes('Не удалось')) {
+      res.status(400).json({ error: e.message })
+    } else {
+      sessions.delete(sessionId)
+      s.browser.close().catch(() => {})
+      res.status(500).json({ error: e.message || 'Unknown error' })
+    }
   }
 })
 
