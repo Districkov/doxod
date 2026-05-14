@@ -1,6 +1,11 @@
 import puppeteer from 'puppeteer-core'
+import chromium from '@sparticuz/chromium'
 
 const BASE_URL = 'https://www.tbank.ru/api'
+
+function isVercel(): boolean {
+  return !!process.env.VERCEL || !!process.env.VERCEL_ENV
+}
 
 function getChromiumPath(): string {
   const paths = [
@@ -74,10 +79,14 @@ export async function loginWithPuppeteer(
   phone: string,
   password: string
 ): Promise<{ sessionId: string }> {
+  const vercel = isVercel()
+  const executablePath = vercel ? await chromium.executablePath() : getChromiumPath()
   const browser = await puppeteer.launch({
-    executablePath: getChromiumPath(),
+    executablePath,
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+    args: vercel
+      ? [...chromium.args, '--disable-gpu', '--disable-dev-shm-usage']
+      : ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
   })
 
   try {

@@ -3,6 +3,8 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { loginWithPuppeteer } from '@/services/tinkoff'
 
+export const maxDuration = 60
+
 async function getUser() {
   const session = await auth()
   if (!session?.user?.id) return null

@@ -5,6 +5,8 @@ import { getOperations } from '@/services/tinkoff'
 import { mccToCategory } from '@/lib/mcc-categories'
 import type { Currency } from '@/generated/prisma'
 
+export const maxDuration = 60
+
 const TBANK_CURRENCY_MAP: Record<string, Currency> = {
   RUB: 'RUB', USD: 'USD', EUR: 'EUR', GBP: 'GBP', KZT: 'KZT', UAH: 'UAH',
   RUR: 'RUB',
