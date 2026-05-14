@@ -113,7 +113,7 @@ export function TinkoffSettings({ isConnected, lastSyncAt }: TinkoffSettingsProp
         )}
 
         <p className="text-xs text-zinc-500">
-          Введите телефон и пароль от приложения Т-Банка. Данные используются только для авторизации и не сохраняются.
+          Введите телефон и пароль от веб-версии Т-Банка (tbank.ru), не PIN-код от приложения.
         </p>
 
         <input
@@ -129,7 +129,7 @@ export function TinkoffSettings({ isConnected, lastSyncAt }: TinkoffSettingsProp
             type={showPw ? 'text' : 'password'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Пароль от приложения Т-Банка"
+            placeholder="Пароль от Т-Банка (не PIN)"
             className={inputCls + ' pr-10'}
             onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
           />
