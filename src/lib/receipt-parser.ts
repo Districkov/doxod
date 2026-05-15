@@ -43,7 +43,7 @@ export async function ocrReceipt(imageBuffer: Buffer): Promise<string> {
     throw new Error(`No parsed results. ExitCode=${data.ExitCode}, Error=${data.ErrorMessage || 'none'}`)
   }
 
-  const texts = data.ParsedResults.map((r: any) => r.ParsedText || '').filter(Boolean).join('\n')
+  const texts = data.ParsedResults.map((r: { ParsedText?: string }) => r.ParsedText || '').filter(Boolean).join('\n')
 
   if (!texts.trim()) {
     throw new Error(`OCR returned empty text. ExitCode=${data.ParsedResults[0]?.FileParseExitCode}, OCRExitCode=${data.ParsedResults[0]?.OCRExitCode}`)
@@ -52,7 +52,7 @@ export async function ocrReceipt(imageBuffer: Buffer): Promise<string> {
   return texts
 }
 
-const SKIP_WORDS = /^(итого|сумма|итог|к оплате|сдача|наличные|карта|товар|чек|кассир|инн|ккт|регн|фд|фп|снос|сайт|тел|провер|прогр|регистр|элдр|сно|терминал|оплат|принят|продаж|заводской|дата|время|адрес|место|кассов|фискал|налого|сист|спасибо|покупк|посещен|добро|пожал|дисконт|бонус|списание|начислен|сдач|сумма пропис|итого со|ндс|в т\.ч|из них|скидк|точка|эквайр|код|авториз|рефер|слип|тип чек|приход|возвр|мерчант|transact|merchant|auth|ref|term|point|total|change|cash|card|visa|master|mir|платеж|перевод|зачислен|списан|комисс|справка|дебет|мир|учитывать|оспорить|разделить|чек за)/i
+const SKIP_WORDS = /^(итого|сумма|итог|к оплате|сдача|наличные|карта|товар|чек|кассир|инн|ккт|регн|фд|фп|снос|сайт|тел|провер|прогр|регистр|элдр|сно|терминал|оплат|принят|продаж|заводской|дата|время|адрес|место|кассов|фискал|налого|сист|спасибо|покупк|посещен|добро|пожал|дисконт|бонус|списание|начислен|сдач|сумма пропис|итого со|ндс|в т\.ч|из них|скидк|точка|эквайр|код|авториз|рефер|слип|тип чек|приход|возвр|мерчант|transact|merchant|auth|ref|term|point|total|change|cash|card|visa|master|mir|платеж|перевод|зачислен|списан|комисс|справка|дебет|мир|учитывать|оспорить|разделить|чек за|добав|кэшбэк|адрес|по акци|начислим|покупк|lte|добавить)/i
 
 const MCC_PATTERN = /\bмсс\b/i
 
@@ -108,9 +108,14 @@ export function parseReceiptItems(text: string): ReceiptItem[] {
     if (priceWithRub) {
       const amount = parseFloat(priceWithRub[1].replace(/\s/g, '').replace(',', '.'))
       if (amount > 0 && amount < 10000000) {
-        const name = pendingName || (i > 0 ? lines[i - 1].replace(/[^а-яА-Яa-zA-Z0-9\s-]/g, '').trim() : '')
-        if (name.length >= 2) {
+        const hasMinus = /^[-—–]/.test(lineCleaned)
+        const name = pendingName || (i > 0 ? lines[i - 1].replace(/[^а-яА-Яa-zA-Z0-9ёЁ\s-]/g, '').trim() : '')
+        if (hasMinus && name.length >= 2) {
           items.push({ name, amount, category: '' })
+          pendingName = ''
+          continue
+        }
+        if (!hasMinus) {
           pendingName = ''
           continue
         }
