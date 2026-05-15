@@ -9,6 +9,8 @@ import { Settings, User, Users, Tag, MessageCircle } from 'lucide-react'
 
 const BOT_USERNAME = process.env.TELEGRAM_BOT_USERNAME || 'doxod_finances_bot'
 
+export const dynamic = 'force-dynamic'
+
 export default async function SettingsPage() {
   const session = await auth()
   if (!session?.user?.id) return null

@@ -6,6 +6,8 @@ import { deleteGoal } from '../_actions/goal-actions'
 import { Plus } from 'lucide-react'
 import { DeleteGoalWrapper } from '@/components/goals/DeleteGoalWrapper'
 
+export const dynamic = 'force-dynamic'
+
 export default async function GoalsPage() {
   const session = await auth()
   if (!session?.user?.familyId) return null

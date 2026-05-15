@@ -4,6 +4,8 @@ import { FamilyInviteForm } from '@/components/family/FamilyInviteForm'
 import { InviteActions } from '@/components/family/InviteActions'
 import { Users, Mail, UserPlus } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 export default async function FamilyPage() {
   const session = await auth()
   if (!session?.user?.id) return null

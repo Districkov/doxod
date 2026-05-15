@@ -10,6 +10,8 @@ import { CsvImport } from '@/components/transactions/CsvImport'
 import { deleteTransaction } from '../_actions/transaction-actions'
 import { ArrowLeftRight, Trash2, Repeat, Upload } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 export default async function TransactionsPage({
   searchParams,
 }: {
