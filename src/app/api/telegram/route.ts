@@ -542,7 +542,12 @@ async function handleReceiptPhoto(
 
     if (items.length === 0) {
       const preview = ocrText.trim().slice(0, 500).replace(/[*_\[\]]/g, '')
-      await sendMarkdown(chatId, `⚠️ Позиции не найдены.\n\nOCR текст:\n\`\`\`\n${preview || '(пусто)'}\n\`\`\``)
+      const firstLines = ocrText.split('\n').slice(0, 5).filter(l => l.trim())
+      const hexDump = firstLines.map(l => {
+        const t = l.trim()
+        return `${t} [${Array.from(t.slice(0, 30)).map(c => c.charCodeAt(0).toString(16)).join(' ')}]`
+      }).join('\n')
+      await sendMarkdown(chatId, `⚠️ Позиции не найдены\n\nТекст:\n\`\`\`\n${preview || '(пусто)'}\n\`\`\`\n\nHex:\n\`\`\`\n${hexDump}\n\`\`\``)
       return NextResponse.json({ ok: true })
     }
 
