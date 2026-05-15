@@ -541,7 +541,8 @@ async function handleReceiptPhoto(
     const items = parseReceiptItems(ocrText)
 
     if (items.length === 0) {
-      await sendMarkdown(chatId, '⚠️ Не удалось распознать позиции чека. Попробуй:\n- Более чёткое фото\n- Или добавь вручную: `-500 кофе`')
+      const preview = ocrText.trim().slice(0, 300).replace(/[*_\[\]]/g, '')
+      await sendMarkdown(chatId, `⚠️ Позиции не найдены. OCR увидел:\n\`\`\`\n${preview || '(пусто)'}\n\`\`\`\n\nПопробуй фото получше или добавь вручную: \`-500 кофе\``)
       return NextResponse.json({ ok: true })
     }
 
