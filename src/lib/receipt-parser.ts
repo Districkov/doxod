@@ -1,4 +1,5 @@
 import Tesseract from 'tesseract.js'
+import sharp from 'sharp'
 
 export interface ReceiptItem {
   name: string
@@ -6,10 +7,36 @@ export interface ReceiptItem {
   category: string
 }
 
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`Timeout after ${ms}ms`)), ms)
+    ),
+  ])
+}
+
+async function preprocessImage(buffer: Buffer): Promise<Buffer> {
+  return sharp(buffer)
+    .resize({ width: 1200, withoutEnlargement: true })
+    .grayscale()
+    .normalize()
+    .sharpen()
+    .png()
+    .toBuffer()
+}
+
 export async function ocrReceipt(imageBuffer: Buffer): Promise<string> {
-  const result = await Tesseract.recognize(imageBuffer, 'rus+eng', {
-    logger: () => {},
-  })
+  const processed = await preprocessImage(imageBuffer)
+
+  const result = await withTimeout(
+    Tesseract.recognize(processed, 'rus+eng', {
+      logger: () => {},
+      corePath: undefined,
+    }),
+    25000
+  )
+
   return result.data.text
 }
 

@@ -6,6 +6,8 @@ import { DEFAULT_CATEGORIES } from '@/lib/categories'
 import { ocrReceipt, parseReceiptItems } from '@/lib/receipt-parser'
 import type { TransactionType, Currency } from '@/generated/prisma'
 
+export const maxDuration = 60
+
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
 
 const CURRENCY_MAP: Record<string, Currency> = {
@@ -572,7 +574,10 @@ async function handleReceiptPhoto(
     )
   } catch (e) {
     console.error('Receipt OCR error:', e)
-    await sendMarkdown(chatId, '❌ Ошибка распознавания. Попробуй ещё раз или добавь вручную: `-500 кофе`')
+    const msg = e instanceof Error && e.message.includes('Timeout')
+      ? '⏱️ Распознавание заняло слишком долго. Попробуй фото получше или добавь вручную: `-500 кофе`'
+      : '❌ Ошибка распознавания. Попробуй ещё раз или добавь вручную: `-500 кофе`'
+    await sendMarkdown(chatId, msg)
   }
 
   return NextResponse.json({ ok: true })
