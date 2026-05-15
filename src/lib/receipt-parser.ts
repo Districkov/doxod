@@ -56,26 +56,54 @@ const SKIP = /^(итог|сумма|к оплате|сдача|наличные|
 
 const MCC = /\bмсс\b/i
 
-function normalizeStr(s: string): string {
+function cleanLine(s: string): string {
   return s
     .replace(/[\u200B-\u200D\uFEFF]/g, '')
     .replace(/[—–−]/g, '-')
     .replace(/，/g, ',')
-    .replace(/[₽рРрR]/g, (ch) => {
-      const code = ch.charCodeAt(0)
-      return (code === 0x0440 || code === 0x0420 || code === 0x20BD || (code >= 0x41 && code <= 0x5A && ch === 'R') || (code >= 0x61 && code <= 0x7A && ch === 'r')) ? 'RUB' : ch
-    })
+    .trim()
+}
+
+function isCurrencySuffix(ch: string): boolean {
+  const code = ch.charCodeAt(0)
+  return code === 0x20BD ||
+    code === 0x0440 ||
+    code === 0x0420 ||
+    ch === '$' || ch === '€' || ch === '£' || ch === '₸' || ch === '₴' ||
+    /^[RrUuBb]$/.test(ch)
+}
+
+function matchPriceLine(line: string): { hasMinus: boolean; amount: number } | null {
+  const m = line.match(/^([-])\s*(\d[\d\s]*[.,]\d{1,2})\s*([^\d]*?)\s*$/)
+  if (m) {
+    const amount = parseFloat(m[2].replace(/\s/g, '').replace(',', '.'))
+    if (amount > 0 && amount < 10000000) {
+      return { hasMinus: true, amount }
+    }
+  }
+  return null
+}
+
+function matchInlineMinus(line: string): { name: string; amount: number } | null {
+  const m = line.match(/^(.+?)\s+[-]\s*(\d[\d\s]*[.,]\d{1,2})\s*/)
+  if (m) {
+    const name = m[1].replace(/[^а-яА-Яa-zA-Z0-9ёЁ\s-]/g, '').trim()
+    const amount = parseFloat(m[2].replace(/\s/g, '').replace(',', '.'))
+    if (name.length >= 2 && amount > 0 && amount < 10000000) {
+      return { name, amount }
+    }
+  }
+  return null
 }
 
 export function parseReceiptItems(text: string): ReceiptItem[] {
-  const lines = text.split('\n').map((l) => l.trim()).filter((l) => l.length > 0)
+  const lines = text.split('\n').map((l) => cleanLine(l)).filter((l) => l.length > 0)
   const items: ReceiptItem[] = []
 
   let pendingName = ''
 
   for (let i = 0; i < lines.length; i++) {
-    const raw = lines[i]
-    const line = normalizeStr(raw)
+    const line = lines[i]
 
     if (line.length < 2) continue
     if (/^[\d\s.,;:]+$/.test(line)) continue
@@ -83,31 +111,23 @@ export function parseReceiptItems(text: string): ReceiptItem[] {
     if (SKIP.test(line)) continue
     if (MCC.test(line)) continue
 
-    const priceOnly = line.match(/^[-\s]*(\d[\d\s]*[.,]\d{1,2})\s*(RUB|руб|rub)?\s*$/i)
-    if (priceOnly) {
-      const amount = parseFloat(priceOnly[1].replace(/\s/g, '').replace(',', '.'))
-      const hasMinus = /^[-]/.test(line)
-      if (amount > 0 && amount < 10000000 && hasMinus) {
-        const name = pendingName.length >= 2
-          ? pendingName
-          : (i > 0 ? normalizeStr(lines[i - 1]).replace(/[^а-яА-Яa-zA-Z0-9ёЁ\s-]/g, '').trim() : '')
-        if (name.length >= 2) {
-          items.push({ name, amount, category: '' })
-        }
+    const priceInfo = matchPriceLine(line)
+    if (priceInfo) {
+      const name = pendingName.length >= 2
+        ? pendingName
+        : (i > 0 ? lines[i - 1].replace(/[^а-яА-Яa-zA-Z0-9ёЁ\s-]/g, '').trim() : '')
+      if (name.length >= 2) {
+        items.push({ name, amount: priceInfo.amount, category: '' })
       }
       pendingName = ''
       continue
     }
 
-    const inlineMinus = line.match(/^(.+?)\s+[-]\s*(\d[\d\s]*[.,]\d{1,2})\s*(RUB|руб|rub)?/i)
-    if (inlineMinus) {
-      const name = inlineMinus[1].replace(/[^а-яА-Яa-zA-Z0-9ёЁ\s-]/g, '').trim()
-      const amount = parseFloat(inlineMinus[2].replace(/\s/g, '').replace(',', '.'))
-      if (name.length >= 2 && amount > 0 && amount < 10000000) {
-        items.push({ name, amount, category: '' })
-        pendingName = ''
-        continue
-      }
+    const inlineInfo = matchInlineMinus(line)
+    if (inlineInfo) {
+      items.push({ name: inlineInfo.name, amount: inlineInfo.amount, category: '' })
+      pendingName = ''
+      continue
     }
 
     const cleaned = line
