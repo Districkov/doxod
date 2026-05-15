@@ -7,6 +7,7 @@ const CATEGORY_KEYWORDS: Record<string, string> = {
   'подарок': 'gift', 'дар': 'gift', 'премия': 'gift',
   'продуктов': 'food', 'магазин': 'food', 'пятерочк': 'food', 'перекрест': 'food',
   'ашан': 'food', 'лента': 'food', 'магни': 'food', 'сыр': 'food', 'мяс': 'food', 'овощ': 'food',
+  'супермаркет': 'food', 'гипермаркет': 'food', 'гастроном': 'food', 'бакале': 'food', 'дикси': 'food',
   'ресторан': 'food', 'кафе': 'food', 'кофе': 'food', 'пицц': 'food', 'бургер': 'food',
   'транспорт': 'transport', 'такси': 'transport', 'яндекс': 'transport', 'убер': 'transport',
   'метро': 'transport', 'автобус': 'transport', 'бензин': 'transport', 'газ': 'transport', 'парковк': 'transport',
@@ -26,7 +27,7 @@ const INCOME_CATEGORIES = new Set(['salary', 'freelance', 'investment', 'gift', 
 const EXPENSE_CATEGORIES = new Set(['food', 'transport', 'housing', 'entertainment', 'health', 'education', 'clothing', 'utilities', 'other_expense'])
 
 export function categorizeByRules(description: string, type: TransactionType): string {
-  const lower = description.toLowerCase()
+  const lower = description.toLowerCase().replace(/ё/g, 'е')
   for (const [keyword, category] of Object.entries(CATEGORY_KEYWORDS)) {
     if (lower.includes(keyword)) {
       if (type === 'INCOME' && EXPENSE_CATEGORIES.has(category)) return 'other_income'
