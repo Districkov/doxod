@@ -43,5 +43,20 @@
     }
   ],
   "categories": ["finance", "productivity"],
-  "prefer_related_applications": false
+  "prefer_related_applications": false,
+  "share_target": {
+    "action": "/transactions",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "description",
+      "text": "text",
+      "files": [
+        {
+          "name": "file",
+          "accept": ["text/csv", ".csv"]
+        }
+      ]
+    }
+  }
 }

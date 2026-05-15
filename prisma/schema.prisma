@@ -44,7 +44,7 @@ model User {
   createdGoals   Goal[]    @relation("GoalCreator")
   invites        FamilyInvite[] @relation("Invitee")
   recurringTemplates RecurringTransaction[]
-  bankConnections BankConnection[]
+
   telegramChatId String?
   telegramLinkToken String? @unique
   createdAt      DateTime  @default(now())
@@ -212,18 +212,4 @@ model Session {
   @@map("sessions")
 }
 
-model BankConnection {
-  id              String    @id @default(cuid())
-  userId          String
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  bank            String    @default("tinkoff")
-  accessToken     String?
-  sessionSecret   String?
-  accountIds      String?
-  lastSyncAt      DateTime?
-  isActive        Boolean   @default(true)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
 
-  @@map("bank_connections")
-}

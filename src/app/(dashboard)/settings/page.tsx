@@ -5,8 +5,7 @@ import { FamilySettingsForm } from '@/components/settings/FamilySettingsForm'
 import { LeaveFamilyButton } from '@/components/settings/LeaveFamilyButton'
 import { CategoryManager } from '@/components/settings/CategoryManager'
 import { TelegramSettings } from '@/components/settings/TelegramSettings'
-import { TinkoffSettings } from '@/components/settings/TinkoffSettings'
-import { Settings, User, Users, Tag, MessageCircle, Building2 } from 'lucide-react'
+import { Settings, User, Users, Tag, MessageCircle } from 'lucide-react'
 
 const BOT_USERNAME = process.env.TELEGRAM_BOT_USERNAME || 'doxod_finances_bot'
 
@@ -19,12 +18,9 @@ export default async function SettingsPage() {
     select: {
       id: true, name: true, email: true, familyId: true,
       telegramChatId: true, telegramLinkToken: true,
-      bankConnections: { where: { bank: 'tinkoff', isActive: true }, take: 1 },
     },
   })
   if (!user) return null
-
-  const tinkoffConn = user.bankConnections[0]
 
   const family = user.familyId
     ? await prisma.family.findUnique({
@@ -60,17 +56,6 @@ export default async function SettingsPage() {
           chatId={user.telegramChatId}
           linkToken={user.telegramLinkToken}
           botUsername={BOT_USERNAME}
-        />
-      </div>
-
-      <div className="rounded-2xl border border-yellow-500/10 bg-[#0c0c12] p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <Building2 className="h-4 w-4 text-yellow-400" />
-          <h2 className="text-sm font-semibold text-zinc-200">Банки</h2>
-        </div>
-        <TinkoffSettings
-          isConnected={!!tinkoffConn?.accessToken}
-          lastSyncAt={tinkoffConn?.lastSyncAt?.toISOString()}
         />
       </div>
 

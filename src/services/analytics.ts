@@ -110,6 +110,68 @@ export async function getBalanceHistory(
   return points
 }
 
+export async function getFamilyBalanceForPeriod(
+  familyId: string,
+  baseCurrency: Currency,
+  from: Date,
+  to: Date
+) {
+  const transactions = await prisma.transaction.findMany({
+    where: { familyId, date: { gte: from, lt: to } },
+    select: { amount: true, type: true, currency: true, goalId: true },
+  })
+
+  let totalIncome = 0
+  let totalExpense = 0
+
+  for (const tx of transactions) {
+    const converted = convertCurrency(tx.amount, tx.currency, baseCurrency)
+    if (tx.type === 'INCOME' && !tx.goalId) {
+      totalIncome += converted
+    } else if (tx.type === 'EXPENSE') {
+      totalExpense += converted
+    }
+  }
+
+  const balance = totalIncome - totalExpense
+
+  return {
+    balance: Math.round(balance * 100) / 100,
+    totalIncome: Math.round(totalIncome * 100) / 100,
+    totalExpense: Math.round(totalExpense * 100) / 100,
+    totalInGoals: 0,
+    formatted: {
+      balance: formatCurrency(balance, baseCurrency),
+      income: formatCurrency(totalIncome, baseCurrency),
+      expense: formatCurrency(totalExpense, baseCurrency),
+      inGoals: formatCurrency(0, baseCurrency),
+    },
+  }
+}
+
+export async function getCategoryBreakdownForPeriod(
+  familyId: string,
+  baseCurrency: Currency,
+  type: 'EXPENSE' | 'INCOME',
+  from: Date,
+  to: Date
+) {
+  const transactions = await prisma.transaction.findMany({
+    where: { familyId, type, date: { gte: from, lt: to } },
+    select: { amount: true, category: true, currency: true },
+  })
+
+  const categoryMap = new Map<string, number>()
+  for (const tx of transactions) {
+    const converted = convertCurrency(tx.amount, tx.currency, baseCurrency)
+    categoryMap.set(tx.category, (categoryMap.get(tx.category) || 0) + converted)
+  }
+
+  return Array.from(categoryMap.entries())
+    .map(([name, value]) => ({ name, value: Math.round(value * 100) / 100 }))
+    .sort((a, b) => b.value - a.value)
+}
+
 export async function getMonthlyComparison(
   familyId: string,
   baseCurrency: Currency,
@@ -143,61 +205,6 @@ export async function getMonthlyComparison(
       income: Math.round(data.income * 100) / 100,
       expense: Math.round(data.expense * 100) / 100,
     }))
-}
-
-export async function getFamilyBalanceForPeriod(
-  familyId: string,
-  baseCurrency: Currency,
-  from: Date,
-  to: Date
-) {
-  const transactions = await prisma.transaction.findMany({
-    where: { familyId, date: { gte: from, lt: to } },
-    select: { amount: true, type: true, currency: true },
-  })
-
-  let totalIncome = 0
-  let totalExpense = 0
-
-  for (const tx of transactions) {
-    const converted = convertCurrency(tx.amount, tx.currency, baseCurrency)
-    if (tx.type === 'INCOME') totalIncome += converted
-    else totalExpense += converted
-  }
-
-  return {
-    totalIncome: Math.round(totalIncome * 100) / 100,
-    totalExpense: Math.round(totalExpense * 100) / 100,
-    balance: Math.round((totalIncome - totalExpense) * 100) / 100,
-    formatted: {
-      income: formatCurrency(totalIncome, baseCurrency),
-      expense: formatCurrency(totalExpense, baseCurrency),
-      balance: formatCurrency(totalIncome - totalExpense, baseCurrency),
-    },
-  }
-}
-
-export async function getCategoryBreakdownForPeriod(
-  familyId: string,
-  baseCurrency: Currency,
-  type: 'EXPENSE' | 'INCOME',
-  from: Date,
-  to: Date
-) {
-  const transactions = await prisma.transaction.findMany({
-    where: { familyId, type, date: { gte: from, lt: to } },
-    select: { amount: true, category: true, currency: true },
-  })
-
-  const categoryMap = new Map<string, number>()
-  for (const tx of transactions) {
-    const converted = convertCurrency(tx.amount, tx.currency, baseCurrency)
-    categoryMap.set(tx.category, (categoryMap.get(tx.category) || 0) + converted)
-  }
-
-  return Array.from(categoryMap.entries())
-    .map(([name, value]) => ({ name, value: Math.round(value * 100) / 100 }))
-    .sort((a, b) => b.value - a.value)
 }
 
 export async function getMonthlyComparisonTwo(

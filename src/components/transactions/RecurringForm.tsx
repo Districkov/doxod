@@ -1,8 +1,9 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
 import { createRecurring } from '@/app/(dashboard)/_actions/recurring-actions'
-import type { Frequency } from '@/generated/prisma'
+import { DEFAULT_CATEGORIES, mergeCategories } from '@/lib/categories'
+import type { Frequency, TransactionType, Category } from '@/generated/prisma'
 
 type Result = { success: boolean; error?: string }
 
@@ -13,8 +14,19 @@ const FREQ_OPTIONS: { value: Frequency; label: string }[] = [
   { value: 'YEARLY', label: 'Ежегодно' },
 ]
 
-export function RecurringForm() {
+const inputCls = "w-full rounded-lg border border-[#1e1e2a] bg-[#111118] px-2.5 py-1.5 text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+const selectCls = "w-full rounded-lg border border-[#1e1e2a] bg-[#111118] px-2.5 py-1.5 text-xs text-zinc-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+
+interface RecurringFormProps {
+  familyCategories?: Category[]
+}
+
+export function RecurringForm({ familyCategories = [] }: RecurringFormProps) {
   const [state, formAction, pending] = useActionState<Result, FormData>(createRecurring, { success: false })
+  const [txType, setTxType] = useState<TransactionType>('EXPENSE')
+
+  const allCats = mergeCategories(DEFAULT_CATEGORIES, familyCategories.map((c) => ({ name: c.name, type: c.type })))
+  const categories = txType === 'INCOME' ? allCats.INCOME : allCats.EXPENSE
 
   return (
     <form action={formAction} className="space-y-3">
@@ -34,15 +46,16 @@ export function RecurringForm() {
             step="0.01"
             required
             placeholder="0.00"
-            className="w-full rounded-lg border border-[#1e1e2a] bg-[#111118] px-2.5 py-1.5 text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+            className={inputCls}
           />
         </div>
         <div>
           <label className="mb-1 block text-[11px] font-medium text-zinc-500">Тип</label>
           <select
             name="type"
-            defaultValue="EXPENSE"
-            className="w-full rounded-lg border border-[#1e1e2a] bg-[#111118] px-2.5 py-1.5 text-xs text-zinc-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+            value={txType}
+            onChange={(e) => setTxType(e.target.value as TransactionType)}
+            className={selectCls}
           >
             <option value="EXPENSE">Расход</option>
             <option value="INCOME">Доход</option>
@@ -52,12 +65,27 @@ export function RecurringForm() {
 
       <div>
         <label className="mb-1 block text-[11px] font-medium text-zinc-500">Категория</label>
-        <input
-          type="text"
+        <select
           name="category"
           required
-          placeholder="Например: Зарплата"
-          className="w-full rounded-lg border border-[#1e1e2a] bg-[#111118] px-2.5 py-1.5 text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+          className={selectCls}
+        >
+          <option value="">Выберите...</option>
+          {categories.map((cat) => (
+            <option key={cat.value} value={cat.value}>
+              {cat.label}{cat.isCustom ? ' ✦' : ''}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label className="mb-1 block text-[11px] font-medium text-zinc-500">Описание (необязательно)</label>
+        <input
+          type="text"
+          name="description"
+          placeholder="Например: Аренда офиса"
+          className={inputCls}
         />
       </div>
 
@@ -67,7 +95,7 @@ export function RecurringForm() {
           <select
             name="frequency"
             defaultValue="MONTHLY"
-            className="w-full rounded-lg border border-[#1e1e2a] bg-[#111118] px-2.5 py-1.5 text-xs text-zinc-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+            className={selectCls}
           >
             {FREQ_OPTIONS.map((f) => (
               <option key={f.value} value={f.value}>{f.label}</option>
@@ -80,7 +108,7 @@ export function RecurringForm() {
             type="date"
             name="nextDate"
             required
-            className="w-full rounded-lg border border-[#1e1e2a] bg-[#111118] px-2.5 py-1.5 text-xs text-zinc-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+            className={inputCls}
           />
         </div>
       </div>

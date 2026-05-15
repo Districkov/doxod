@@ -6,8 +6,9 @@ import { RecurringList } from '@/components/transactions/RecurringList'
 import { RecurringForm } from '@/components/transactions/RecurringForm'
 import { TransactionFilters } from '@/components/transactions/TransactionFilters'
 import { ExportButton } from '@/components/transactions/ExportButton'
+import { CsvImport } from '@/components/transactions/CsvImport'
 import { deleteTransaction } from '../_actions/transaction-actions'
-import { ArrowLeftRight, Trash2, Repeat } from 'lucide-react'
+import { ArrowLeftRight, Trash2, Repeat, Upload } from 'lucide-react'
 
 export default async function TransactionsPage({
   searchParams,
@@ -80,10 +81,18 @@ export default async function TransactionsPage({
 
           <div className="rounded-2xl border border-[#1e1e2a] bg-[#0c0c12] p-5">
             <div className="flex items-center gap-2 mb-3">
+              <Upload className="h-4 w-4 text-indigo-400" />
+              <h2 className="text-sm font-semibold text-zinc-200">Импорт из CSV</h2>
+            </div>
+            <CsvImport />
+          </div>
+
+          <div className="rounded-2xl border border-[#1e1e2a] bg-[#0c0c12] p-5">
+            <div className="flex items-center gap-2 mb-3">
               <Repeat className="h-4 w-4 text-indigo-400" />
               <h2 className="text-sm font-semibold text-zinc-200">Новый повтор</h2>
             </div>
-            <RecurringForm />
+            <RecurringForm familyCategories={family.categories} />
           </div>
         </div>
 
