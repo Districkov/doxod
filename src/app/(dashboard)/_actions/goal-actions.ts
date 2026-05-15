@@ -36,8 +36,7 @@ export async function createGoal(
     },
   })
 
-  revalidatePath('/goals')
-  revalidatePath('/dashboard')
+  revalidatePath('/', 'layout')
   return { success: true }
 }
 
@@ -45,20 +44,14 @@ export async function deleteGoal(formData: FormData): Promise<void> {
   const { family } = await requireFamily()
   const id = formData.get('id') as string
 
-  // Удаляем копилку вместе со всеми связанными транзакциями
   await prisma.$transaction(async (tx) => {
-    // Сначала удаляем все транзакции, связанные с этой копилкой
     await tx.transaction.deleteMany({
       where: { goalId: id, familyId: family.id },
     })
-    
-    // Затем удаляем саму копилку
     await tx.goal.deleteMany({
       where: { id, familyId: family.id },
     })
   })
 
-  revalidatePath('/goals')
-  revalidatePath('/dashboard')
-  revalidatePath('/transactions')
+  revalidatePath('/', 'layout')
 }

@@ -61,10 +61,7 @@ export async function addTransaction(
     }
   })
 
-  revalidatePath('/dashboard')
-  revalidatePath('/transactions')
-  revalidatePath('/goals')
-  revalidatePath('/analytics')
+  revalidatePath('/', 'layout')
   return { success: true }
 }
 
@@ -94,8 +91,5 @@ export async function deleteTransaction(formData: FormData): Promise<void> {
     await tx.transaction.delete({ where: { id } })
   })
 
-  revalidatePath('/dashboard')
-  revalidatePath('/transactions')
-  revalidatePath('/goals')
-  revalidatePath('/analytics')
+  revalidatePath('/', 'layout')
 }
