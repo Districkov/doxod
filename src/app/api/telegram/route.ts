@@ -541,8 +541,8 @@ async function handleReceiptPhoto(
     const items = parseReceiptItems(ocrText)
 
     if (items.length === 0) {
-      const preview = ocrText.trim().slice(0, 300).replace(/[*_\[\]]/g, '')
-      await sendMarkdown(chatId, `⚠️ Позиции не найдены. OCR увидел:\n\`\`\`\n${preview || '(пусто)'}\n\`\`\`\n\nПопробуй фото получше или добавь вручную: \`-500 кофе\``)
+      const preview = ocrText.trim().slice(0, 500).replace(/[*_\[\]]/g, '')
+      await sendMarkdown(chatId, `⚠️ Позиции не найдены.\n\nOCR текст:\n\`\`\`\n${preview || '(пусто)'}\n\`\`\``)
       return NextResponse.json({ ok: true })
     }
 
@@ -574,11 +574,12 @@ async function handleReceiptPhoto(
       replyMarkup
     )
   } catch (e) {
-    console.error('Receipt OCR error:', e)
-    const msg = e instanceof Error && e.message.includes('Timeout')
-      ? '⏱️ Распознавание заняло слишком долго. Попробуй фото получше или добавь вручную: `-500 кофе`'
-      : '❌ Ошибка распознавания. Попробуй ещё раз или добавь вручную: `-500 кофе`'
-    await sendMarkdown(chatId, msg)
+    const errDetail = e instanceof Error ? e.message : String(e)
+    console.error('Receipt OCR error:', errDetail)
+    const msg = errDetail.includes('Timeout')
+      ? '⏱️ Распознавание заняло слишком долго'
+      : `❌ OCR ошибка: ${errDetail.slice(0, 200)}`
+    await sendMarkdown(chatId, `${msg}\n\nДобавь вручную: \`-99.99 перекрёсток\``)
   }
 
   return NextResponse.json({ ok: true })

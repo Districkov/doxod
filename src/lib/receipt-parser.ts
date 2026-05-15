@@ -34,12 +34,21 @@ export async function ocrReceipt(imageBuffer: Buffer): Promise<string> {
     body: formData,
   })
 
-  if (!res.ok) throw new Error(`OCR.space ${res.status}`)
+  if (!res.ok) throw new Error(`OCR.space ${res.status}: ${await res.text()}`)
 
   const data = await res.json()
   if (data.IsErroredOnProcessing) throw new Error(data.ErrorMessage || 'OCR error')
 
-  const texts = (data.ParsedResults || []).map((r: any) => r.ParsedText || '').join('\n')
+  if (!data.ParsedResults || data.ParsedResults.length === 0) {
+    throw new Error(`No parsed results. ExitCode=${data.ExitCode}, Error=${data.ErrorMessage || 'none'}`)
+  }
+
+  const texts = data.ParsedResults.map((r: any) => r.ParsedText || '').filter(Boolean).join('\n')
+
+  if (!texts.trim()) {
+    throw new Error(`OCR returned empty text. ExitCode=${data.ParsedResults[0]?.FileParseExitCode}, OCRExitCode=${data.ParsedResults[0]?.OCRExitCode}`)
+  }
+
   return texts
 }
 
