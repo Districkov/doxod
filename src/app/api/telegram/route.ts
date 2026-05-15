@@ -6,8 +6,6 @@ import { DEFAULT_CATEGORIES } from '@/lib/categories'
 import { ocrReceipt, parseReceiptItems } from '@/lib/receipt-parser'
 import type { TransactionType, Currency } from '@/generated/prisma'
 
-export const maxDuration = 60
-
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
 
 const CURRENCY_MAP: Record<string, Currency> = {
