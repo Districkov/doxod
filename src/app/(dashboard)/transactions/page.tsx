@@ -47,18 +47,25 @@ export default async function TransactionsPage({
     if (dateTo) (where.date as Record<string, unknown>).lte = new Date(dateTo)
   }
 
-  const transactions = await prisma.transaction.findMany({
-    where,
-    orderBy: { date: 'desc' },
-    include: { user: { select: { name: true } } },
-    take: 100,
-  })
+  const page = parseInt(params.page || '1')
+  const pageSize = 30
+  const skip = (page - 1) * pageSize
 
-  const allCategories = await prisma.transaction.findMany({
-    where: { familyId: family.id },
-    select: { category: true },
-    distinct: ['category'],
-  })
+  const [transactions, totalCount, allCategories] = await Promise.all([
+    prisma.transaction.findMany({
+      where,
+      orderBy: { date: 'desc' },
+      include: { user: { select: { name: true } } },
+      take: pageSize,
+      skip,
+    }),
+    prisma.transaction.count({ where }),
+    prisma.transaction.findMany({
+      where: { familyId: family.id },
+      select: { category: true },
+      distinct: ['category'],
+    }),
+  ])
 
   return (
     <div className="space-y-6">

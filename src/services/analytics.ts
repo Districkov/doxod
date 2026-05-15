@@ -3,34 +3,26 @@ import { convertCurrency, formatCurrency } from '@/lib/currency'
 import type { Currency } from '@/generated/prisma'
 
 export async function getFamilyBalance(familyId: string, baseCurrency: Currency) {
-  const transactions = await prisma.transaction.findMany({
-    where: { familyId },
-    select: { amount: true, type: true, currency: true, goalId: true },
-  })
+  const [incomeAgg, expenseAgg, goals] = await Promise.all([
+    prisma.transaction.aggregate({
+      where: { familyId, type: 'INCOME', goalId: null },
+      _sum: { amount: true },
+    }),
+    prisma.transaction.aggregate({
+      where: { familyId, type: 'EXPENSE' },
+      _sum: { amount: true },
+    }),
+    prisma.goal.findMany({
+      where: { familyId },
+      select: { currentAmount: true, currency: true },
+    }),
+  ])
 
-  const goals = await prisma.goal.findMany({
-    where: { familyId },
-    select: { currentAmount: true, currency: true },
-  })
-
-  let totalIncome = 0
-  let totalExpense = 0
+  const totalIncome = convertCurrency(incomeAgg._sum.amount || 0, baseCurrency, baseCurrency)
+  const totalExpense = convertCurrency(expenseAgg._sum.amount || 0, baseCurrency, baseCurrency)
   let totalInGoals = 0
-
-  // Считаем доходы и расходы (НЕ связанные с копилками)
-  for (const tx of transactions) {
-    const converted = convertCurrency(tx.amount, tx.currency, baseCurrency)
-    if (tx.type === 'INCOME' && !tx.goalId) {
-      totalIncome += converted
-    } else if (tx.type === 'EXPENSE') {
-      totalExpense += converted
-    }
-  }
-
-  // Считаем деньги в копилках
   for (const goal of goals) {
-    const converted = convertCurrency(goal.currentAmount, goal.currency, baseCurrency)
-    totalInGoals += converted
+    totalInGoals += convertCurrency(goal.currentAmount, goal.currency, baseCurrency)
   }
 
   const freeBalance = totalIncome - totalExpense - totalInGoals
@@ -52,7 +44,7 @@ export async function getFamilyBalance(familyId: string, baseCurrency: Currency)
 export async function getCategoryBreakdown(
   familyId: string,
   baseCurrency: Currency,
-  type: 'EXPENSE' | 'INCOME' = 'EXPENSE'
+  type: 'EXPENSE' | 'INCOME'
 ) {
   const transactions = await prisma.transaction.findMany({
     where: { familyId, type },
@@ -77,33 +69,49 @@ export async function getBalanceHistory(
 ) {
   const since = new Date()
   since.setMonth(since.getMonth() - months)
+  since.setDate(1)
 
-  const transactions = await prisma.transaction.findMany({
-    where: { familyId, date: { gte: since } },
-    orderBy: { date: 'asc' },
-    select: { amount: true, type: true, currency: true, date: true },
-  })
+  const [transactions, initialIncome, initialExpense, goals] = await Promise.all([
+    prisma.transaction.findMany({
+      where: { familyId, date: { gte: since } },
+      select: { amount: true, type: true, currency: true, goalId: true, date: true },
+      orderBy: { date: 'asc' },
+    }),
+    prisma.transaction.aggregate({
+      where: { familyId, type: 'INCOME', goalId: null, date: { lt: since } },
+      _sum: { amount: true },
+    }),
+    prisma.transaction.aggregate({
+      where: { familyId, type: 'EXPENSE', date: { lt: since } },
+      _sum: { amount: true },
+    }),
+    prisma.goal.findMany({
+      where: { familyId },
+      select: { currentAmount: true, currency: true },
+    }),
+  ])
 
-  let runningBalance = 0
+  let totalInGoals = 0
+  for (const goal of goals) {
+    totalInGoals += convertCurrency(goal.currentAmount, goal.currency, baseCurrency)
+  }
+
+  const balanceBefore = convertCurrency(initialIncome._sum.amount || 0, baseCurrency, baseCurrency)
+    - convertCurrency(initialExpense._sum.amount || 0, baseCurrency, baseCurrency)
+    - totalInGoals
+
   const points: { date: string; balance: number }[] = []
-
-  const allBalance = await getFamilyBalance(familyId, baseCurrency)
-  const balanceBeforePeriod = allBalance.balance - transactions.reduce((acc: number, tx: { amount: number; type: string; currency: Currency }) => {
-    const converted = convertCurrency(tx.amount, tx.currency, baseCurrency)
-    return acc + (tx.type === 'INCOME' ? converted : -converted)
-  }, 0)
-
-  runningBalance = balanceBeforePeriod
+  let running = balanceBefore
 
   for (const tx of transactions) {
     const converted = convertCurrency(tx.amount, tx.currency, baseCurrency)
-    runningBalance += tx.type === 'INCOME' ? converted : -converted
+    running += tx.type === 'INCOME' && !tx.goalId ? converted : tx.type === 'EXPENSE' ? -converted : 0
     const dateStr = tx.date.toISOString().split('T')[0]
     const last = points[points.length - 1]
     if (last && last.date === dateStr) {
-      last.balance = Math.round(runningBalance * 100) / 100
+      last.balance = Math.round(running * 100) / 100
     } else {
-      points.push({ date: dateStr, balance: Math.round(runningBalance * 100) / 100 })
+      points.push({ date: dateStr, balance: Math.round(running * 100) / 100 })
     }
   }
 
@@ -116,23 +124,19 @@ export async function getFamilyBalanceForPeriod(
   from: Date,
   to: Date
 ) {
-  const transactions = await prisma.transaction.findMany({
-    where: { familyId, date: { gte: from, lt: to } },
-    select: { amount: true, type: true, currency: true, goalId: true },
-  })
+  const [incomeAgg, expenseAgg] = await Promise.all([
+    prisma.transaction.aggregate({
+      where: { familyId, type: 'INCOME', goalId: null, date: { gte: from, lt: to } },
+      _sum: { amount: true },
+    }),
+    prisma.transaction.aggregate({
+      where: { familyId, type: 'EXPENSE', date: { gte: from, lt: to } },
+      _sum: { amount: true },
+    }),
+  ])
 
-  let totalIncome = 0
-  let totalExpense = 0
-
-  for (const tx of transactions) {
-    const converted = convertCurrency(tx.amount, tx.currency, baseCurrency)
-    if (tx.type === 'INCOME' && !tx.goalId) {
-      totalIncome += converted
-    } else if (tx.type === 'EXPENSE') {
-      totalExpense += converted
-    }
-  }
-
+  const totalIncome = convertCurrency(incomeAgg._sum.amount || 0, baseCurrency, baseCurrency)
+  const totalExpense = convertCurrency(expenseAgg._sum.amount || 0, baseCurrency, baseCurrency)
   const balance = totalIncome - totalExpense
 
   return {
@@ -191,7 +195,6 @@ export async function getMonthlyComparison(
   for (const tx of transactions) {
     const converted = convertCurrency(tx.amount, tx.currency, baseCurrency)
     const monthKey = tx.date.toISOString().slice(0, 7)
-
     const existing = monthMap.get(monthKey) || { income: 0, expense: 0 }
     if (tx.type === 'INCOME') existing.income += converted
     else existing.expense += converted
@@ -213,25 +216,56 @@ export async function getMonthlyComparisonTwo(
   currentMonth: string,
   prevMonth: string
 ) {
-  const currentFrom = new Date(currentMonth + '-01')
-  const currentTo = new Date(new Date(currentMonth + '-01').getFullYear(), new Date(currentMonth + '-01').getMonth() + 1, 1)
-  const prevFrom = new Date(prevMonth + '-01')
-  const prevTo = new Date(new Date(prevMonth + '-01').getFullYear(), new Date(prevMonth + '-01').getMonth() + 1, 1)
+  const transactions = await prisma.transaction.findMany({
+    where: {
+      familyId,
+      date: {
+        gte: new Date(`${prevMonth}-01`),
+        lt: new Date(`${currentMonth}-01`).getTime() > 0
+          ? new Date(`${currentMonth}-01`)
+          : new Date(),
+      },
+    },
+    select: { amount: true, type: true, currency: true, date: true },
+  })
 
-  const [current, prev] = await Promise.all([
-    getFamilyBalanceForPeriod(familyId, baseCurrency, currentFrom, currentTo),
-    getFamilyBalanceForPeriod(familyId, baseCurrency, prevFrom, prevTo),
-  ])
+  let curIncome = 0, curExpense = 0, prevIncome = 0, prevExpense = 0
 
-  const pctChange = (curr: number, prevVal: number) => {
-    if (prevVal === 0) return curr > 0 ? 100 : 0
-    return Math.round(((curr - prevVal) / prevVal) * 10000) / 100
+  for (const tx of transactions) {
+    const converted = convertCurrency(tx.amount, tx.currency, baseCurrency)
+    const monthKey = tx.date.toISOString().slice(0, 7)
+    if (monthKey === currentMonth) {
+      if (tx.type === 'INCOME') curIncome += converted; else curExpense += converted
+    } else if (monthKey === prevMonth) {
+      if (tx.type === 'INCOME') prevIncome += converted; else prevExpense += converted
+    }
   }
 
+  const incomeChange = prevIncome > 0
+    ? Math.round((curIncome - prevIncome) / prevIncome * 100)
+    : curIncome > 0 ? 100 : 0
+  const expenseChange = prevExpense > 0
+    ? Math.round((curExpense - prevExpense) / prevExpense * 100)
+    : curExpense > 0 ? 100 : 0
+
   return {
-    current,
-    prev,
-    incomeChange: pctChange(current.totalIncome, prev.totalIncome),
-    expenseChange: pctChange(current.totalExpense, prev.totalExpense),
+    current: {
+      totalIncome: Math.round(curIncome * 100) / 100,
+      totalExpense: Math.round(curExpense * 100) / 100,
+      formatted: {
+        income: formatCurrency(curIncome, baseCurrency),
+        expense: formatCurrency(curExpense, baseCurrency),
+      },
+    },
+    prev: {
+      totalIncome: Math.round(prevIncome * 100) / 100,
+      totalExpense: Math.round(prevExpense * 100) / 100,
+      formatted: {
+        income: formatCurrency(prevIncome, baseCurrency),
+        expense: formatCurrency(prevExpense, baseCurrency),
+      },
+    },
+    incomeChange,
+    expenseChange,
   }
 }
