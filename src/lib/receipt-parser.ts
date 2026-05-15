@@ -20,9 +20,10 @@ export async function ocrReceipt(imageBuffer: Buffer): Promise<string> {
   const formData = new FormData()
   formData.append('base64Image', `data:image/jpeg;base64,${base64}`)
   formData.append('language', 'rus')
-  formData.append('OCREngine', '2')
+  formData.append('OCREngine', '1')
   formData.append('scale', 'true')
   formData.append('isTable', 'true')
+  formData.append('isOverlayRequired', 'false')
   formData.append('detectOrientation', 'true')
 
   const apiKey = process.env.OCR_SPACE_API_KEY || 'K82689348888957'

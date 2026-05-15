@@ -566,9 +566,11 @@ async function handleReceiptPhoto(
 
     const replyMarkup = { inline_keyboard: [buttons] }
 
+    const ocrPreview = ocrText.trim().slice(0, 200).replace(/[*_\[\]]/g, '')
+
     await sendTelegram(
       chatId,
-      `🧾 *Распознано ${items.length} позиций* (итого: *${total.toFixed(2)} ₽*)\n\n${lines.join('\n')}`,
+      `🧾 *Распознано ${items.length} позиций* (итого: *${total.toFixed(2)} ₽*)\n\n${lines.join('\n')}\n\n_📝 OCR: ${ocrPreview}_`,
       replyMarkup
     )
   } catch (e) {
