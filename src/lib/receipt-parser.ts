@@ -43,13 +43,23 @@ export async function ocrReceipt(imageBuffer: Buffer): Promise<string> {
   return texts
 }
 
-const SKIP_WORDS = /^(итого|сумма|итог|к оплате|сдача|наличные|карта|товар|чек|кассир|инн|ккт|регн|фд|фп|снос|сайт|тел|провер|прогр|регистр|элдр|сно|терминал|оплат|принят|продаж|заводской|дата|время|адрес|место|кассов|фискал|налого|сист|сайт|спасибо|покупк|посещен|добро|пожал|дисконт|бонус|списание|начислен|сдач|сумма пропис|итого со|ндс|в т\.ч|из них|скидк|точка|эквайр|код|авториз|рефер|слип|тип чек|приход|возвр|мерчант|transact|merchant|auth|ref|term|point|total|change|cash|card|visa|master|mir|платеж|перевод|зачислен|списан|комисс)/i
+const SKIP_WORDS = /^(итого|сумма|итог|к оплате|сдача|наличные|карта|товар|чек|кассир|инн|ккт|регн|фд|фп|снос|сайт|тел|провер|прогр|регистр|элдр|сно|терминал|оплат|принят|продаж|заводской|дата|время|адрес|место|кассов|фискал|налого|сист|спасибо|покупк|посещен|добро|пожал|дисконт|бонус|списание|начислен|сдач|сумма пропис|итого со|ндс|в т\.ч|из них|скидк|точка|эквайр|код|авториз|рефер|слип|тип чек|приход|возвр|мерчант|transact|merchant|auth|ref|term|point|total|change|cash|card|visa|master|mir|платеж|перевод|зачислен|списан|комисс|справка|дебет|мир|учитывать|оспорить|разделить|чек за)/i
+
+const MCC_PATTERN = /\bмсс\b/i
+
+function isGarbageLine(line: string): boolean {
+  const clean = line.replace(/[^а-яА-Яa-zA-Z]/g, '')
+  if (clean.length < 2) return true
+  if (/^\W+$/.test(line)) return true
+  if (/^[\d\s.,;:]+$/.test(line)) return true
+  if (/^[=\-_#*|/\\]+$/.test(line)) return true
+  return false
+}
 
 function extractPrice(text: string): number | null {
   const patterns = [
     /(\d{1,3}(?:[\s]\d{3})*[.,]\d{1,2})/,
     /(\d+[.,]\d{1,2})/,
-    /(\d+)/,
   ]
 
   for (const p of patterns) {
@@ -62,13 +72,8 @@ function extractPrice(text: string): number | null {
   return null
 }
 
-function isGarbageLine(line: string): boolean {
-  const clean = line.replace(/[^а-яА-Яa-zA-Z]/g, '')
-  if (clean.length < 2) return true
-  if (/^[а-яА-Яa-zA-Z]$/.test(clean)) return true
-  if (/^\W+$/.test(line)) return true
-  if (/^[\d\s.,;:]+$/.test(line)) return true
-  if (/^[=\-_#*|/\\]+$/.test(line)) return true
+function isMccCode(text: string): boolean {
+  if (MCC_PATTERN.test(text)) return true
   return false
 }
 
@@ -76,9 +81,72 @@ export function parseReceiptItems(text: string): ReceiptItem[] {
   const lines = text.split('\n').map((l) => l.trim()).filter((l) => l.length > 1)
   const items: ReceiptItem[] = []
 
-  for (const line of lines) {
+  let pendingName = ''
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
     if (SKIP_WORDS.test(line)) continue
     if (isGarbageLine(line)) continue
+    if (isMccCode(line)) continue
+
+    const negativePrice = line.match(/^-?\s*(\d[\d\s]*[.,]\d{1,2})\s*[₽рРРРrub]*\s*$/i)
+    if (negativePrice && pendingName) {
+      const amount = parseFloat(negativePrice[1].replace(/\s/g, '').replace(',', '.'))
+      if (amount > 0 && amount < 10000000) {
+        items.push({ name: pendingName, amount, category: '' })
+        pendingName = ''
+        continue
+      }
+    }
+
+    const minusPrice = line.match(/-\s*(\d[\d\s]*[.,]\d{1,2})\s*[₽рРРРrub]*/i)
+    if (minusPrice) {
+      const amount = parseFloat(minusPrice[1].replace(/\s/g, '').replace(',', '.'))
+      if (amount > 0 && amount < 10000000) {
+        const namePart = line.substring(0, line.indexOf('-')).replace(/[^а-яА-Яa-zA-Z0-9\s-]/g, '').trim()
+        if (namePart.length >= 2) {
+          items.push({ name: namePart, amount, category: '' })
+          continue
+        } else if (pendingName) {
+          items.push({ name: pendingName, amount, category: '' })
+          pendingName = ''
+          continue
+        } else {
+          const prevLine = i > 0 ? lines[i - 1] : ''
+          const prevClean = prevLine.replace(/[^а-яА-Яa-zA-Z0-9\s-]/g, '').trim()
+          if (prevClean.length >= 2) {
+            items.push({ name: prevClean, amount, category: '' })
+            continue
+          }
+        }
+      }
+    }
+
+    const plusPrice = line.match(/^\+\s*(\d[\d\s]*[.,]\d{1,2})\s*[₽рРРРrub]*/i)
+    if (plusPrice) {
+      const amount = parseFloat(plusPrice[1].replace(/\s/g, '').replace(',', '.'))
+      if (amount > 0 && amount < 10000000) {
+        const prevLine = i > 0 ? lines[i - 1] : ''
+        const prevClean = prevLine.replace(/[^а-яА-Яa-zA-Z0-9\s-]/g, '').trim()
+        if (prevClean.length >= 2) {
+          items.push({ name: prevClean, amount, category: '' })
+          continue
+        }
+      }
+    }
+
+    const lineWithoutMcc = line.replace(/\s*[•·]\s*мсс\s*\d{4}\b/i, '').replace(/\s*мсс\s*\d{4}\b/i, '').trim()
+    if (lineWithoutMcc !== line) {
+      if (lineWithoutMcc.length >= 2) {
+        pendingName = lineWithoutMcc.replace(/[^а-яА-Яa-zA-Z0-9\s-]/g, '').trim()
+      }
+      continue
+    }
+
+    if (line.match(/^[а-яА-Яa-zA-Z0-9\s-]{2,}$/)) {
+      pendingName = line.replace(/[^а-яА-Яa-zA-Z0-9\s-]/g, '').trim()
+      continue
+    }
 
     let name = ''
     let amount: number | null = null
@@ -104,7 +172,7 @@ export function parseReceiptItems(text: string): ReceiptItem[] {
       if (multiSpace) {
         const leftName = multiSpace[1].replace(/[^а-яА-Яa-zA-Z0-9\s-]/g, '').trim()
         const rightPrice = extractPrice(multiSpace[2])
-        if (rightPrice && leftName.length >= 2) {
+        if (rightPrice && rightPrice < 100000 && leftName.length >= 2) {
           name = leftName
           amount = rightPrice
         }
@@ -116,28 +184,6 @@ export function parseReceiptItems(text: string): ReceiptItem[] {
       if (endPrice) {
         name = endPrice[1].replace(/[^а-яА-Яa-zA-Z0-9\s-]/g, '').trim()
         amount = parseFloat(endPrice[2].replace(/\s/g, '').replace(',', '.'))
-      }
-    }
-
-    if (!amount) {
-      const dotPrice = line.match(/^(.{2,}?)\s+(\d+\.\d{1,2})\s*$/)
-      if (dotPrice) {
-        name = dotPrice[1].replace(/[^а-яА-Яa-zA-Z0-9\s-]/g, '').trim()
-        amount = parseFloat(dotPrice[2])
-      }
-    }
-
-    if (!amount) {
-      const linePrice = extractPrice(line)
-      if (linePrice) {
-        const priceStr = line.match(/(\d[\d\s]*[.,]\d{1,2}|\d+)/)
-        if (priceStr) {
-          const before = line.substring(0, line.indexOf(priceStr[0]))
-          name = before.replace(/[^а-яА-Яa-zA-Z0-9\s-]/g, '').trim()
-          if (name.length >= 2) {
-            amount = linePrice
-          }
-        }
       }
     }
 
