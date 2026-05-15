@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/layout/Sidebar'
+import { AutoRefresh } from '@/components/layout/AutoRefresh'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,6 +31,7 @@ export default async function DashboardLayout({
         }}
       >
         {children}
+        <AutoRefresh />
       </main>
     </div>
   )
