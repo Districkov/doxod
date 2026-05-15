@@ -94,73 +94,67 @@ export function parseReceiptItems(text: string): ReceiptItem[] {
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
+
     if (SKIP_WORDS.test(line)) continue
     if (isGarbageLine(line)) continue
     if (isMccCode(line)) continue
 
-    const negativePrice = line.match(/^-?\s*(\d[\d\s]*[.,]\d{1,2})\s*[₽рРРРrub]*\s*$/i)
-    if (negativePrice && pendingName) {
-      const amount = parseFloat(negativePrice[1].replace(/\s/g, '').replace(',', '.'))
+    const lineCleaned = line
+      .replace(/\s*[•·]\s*мсс\s*\d{4}\b/gi, '')
+      .replace(/\s*мсс\s*\d{4}\b/gi, '')
+      .trim()
+
+    const priceWithRub = lineCleaned.match(/^[-—–\s]*(\d[\d\s]*[.,]\d{1,2})\s*[₽рРрRрубRubRUB]+\s*$/i)
+    if (priceWithRub) {
+      const amount = parseFloat(priceWithRub[1].replace(/\s/g, '').replace(',', '.'))
       if (amount > 0 && amount < 10000000) {
-        items.push({ name: pendingName, amount, category: '' })
+        const name = pendingName || (i > 0 ? lines[i - 1].replace(/[^а-яА-Яa-zA-Z0-9\s-]/g, '').trim() : '')
+        if (name.length >= 2) {
+          items.push({ name, amount, category: '' })
+          pendingName = ''
+          continue
+        }
+      }
+    }
+
+    const inlineMinus = lineCleaned.match(/^(.+?)\s+[-—–]\s*(\d[\d\s]*[.,]\d{1,2})\s*[₽рРрRрубRubRUB]*/i)
+    if (inlineMinus) {
+      const name = inlineMinus[1].replace(/[^а-яА-Яa-zA-Z0-9\s-]/g, '').trim()
+      const amount = parseFloat(inlineMinus[2].replace(/\s/g, '').replace(',', '.'))
+      if (name.length >= 2 && amount > 0 && amount < 10000000) {
+        items.push({ name, amount, category: '' })
         pendingName = ''
         continue
       }
     }
 
-    const minusPrice = line.match(/-\s*(\d[\d\s]*[.,]\d{1,2})\s*[₽рРРРrub]*/i)
-    if (minusPrice) {
-      const amount = parseFloat(minusPrice[1].replace(/\s/g, '').replace(',', '.'))
-      if (amount > 0 && amount < 10000000) {
-        const namePart = line.substring(0, line.indexOf('-')).replace(/[^а-яА-Яa-zA-Z0-9\s-]/g, '').trim()
-        if (namePart.length >= 2) {
-          items.push({ name: namePart, amount, category: '' })
-          continue
-        } else if (pendingName) {
-          items.push({ name: pendingName, amount, category: '' })
-          pendingName = ''
-          continue
-        } else {
-          const prevLine = i > 0 ? lines[i - 1] : ''
-          const prevClean = prevLine.replace(/[^а-яА-Яa-zA-Z0-9\s-]/g, '').trim()
-          if (prevClean.length >= 2) {
-            items.push({ name: prevClean, amount, category: '' })
-            continue
-          }
-        }
+    const inlinePlus = lineCleaned.match(/^(.+?)\s+[+]\s*(\d[\d\s]*[.,]\d{1,2})\s*[₽рРрRрубRubRUB]*/i)
+    if (inlinePlus) {
+      const name = inlinePlus[1].replace(/[^а-яА-Яa-zA-Z0-9\s-]/g, '').trim()
+      const amount = parseFloat(inlinePlus[2].replace(/\s/g, '').replace(',', '.'))
+      if (name.length >= 2 && amount > 0 && amount < 10000000) {
+        items.push({ name, amount, category: '' })
+        pendingName = ''
+        continue
       }
     }
 
-    const plusPrice = line.match(/^\+\s*(\d[\d\s]*[.,]\d{1,2})\s*[₽рРРРrub]*/i)
-    if (plusPrice) {
-      const amount = parseFloat(plusPrice[1].replace(/\s/g, '').replace(',', '.'))
-      if (amount > 0 && amount < 10000000) {
-        const prevLine = i > 0 ? lines[i - 1] : ''
-        const prevClean = prevLine.replace(/[^а-яА-Яa-zA-Z0-9\s-]/g, '').trim()
-        if (prevClean.length >= 2) {
-          items.push({ name: prevClean, amount, category: '' })
-          continue
-        }
-      }
-    }
-
-    const lineWithoutMcc = line.replace(/\s*[•·]\s*мсс\s*\d{4}\b/i, '').replace(/\s*мсс\s*\d{4}\b/i, '').trim()
-    if (lineWithoutMcc !== line) {
-      if (lineWithoutMcc.length >= 2) {
-        pendingName = lineWithoutMcc.replace(/[^а-яА-Яa-zA-Z0-9\s-]/g, '').trim()
-      }
+    if (lineCleaned !== line && lineCleaned.length >= 2) {
+      pendingName = lineCleaned.replace(/[^а-яА-Яa-zA-Z0-9\s-]/g, '').trim()
       continue
     }
 
-    if (line.match(/^[а-яА-Яa-zA-Z0-9\s-]{2,}$/)) {
-      pendingName = line.replace(/[^а-яА-Яa-zA-Z0-9\s-]/g, '').trim()
+    if (lineCleaned.match(/^[а-яА-Яa-zA-Z0-9\s-]{2,}$/)) {
+      pendingName = lineCleaned.replace(/[^а-яА-Яa-zA-Z0-9\s-]/g, '').trim()
       continue
     }
+
+    if (lineCleaned.match(/^\d{1,2}[:.]\d{2}/)) continue
 
     let name = ''
     let amount: number | null = null
 
-    const qtyPrice = line.match(/^(.+?)\s+(\d+([.,]\d+)?)\s*[xх]\s*(\d+([.,]\d+)?)/i)
+    const qtyPrice = lineCleaned.match(/^(.+?)\s+(\d+([.,]\d+)?)\s*[xх]\s*(\d+([.,]\d+)?)/i)
     if (qtyPrice) {
       name = qtyPrice[1].replace(/[^а-яА-Яa-zA-Z0-9\s-]/g, '').trim()
       const qty = parseFloat(qtyPrice[2].replace(',', '.'))
@@ -169,7 +163,7 @@ export function parseReceiptItems(text: string): ReceiptItem[] {
     }
 
     if (!amount) {
-      const tabSep = line.match(/^(.+?)\t+(.+)$/)
+      const tabSep = lineCleaned.match(/^(.+?)\t+(.+)$/)
       if (tabSep) {
         name = tabSep[1].replace(/[^а-яА-Яa-zA-Z0-9\s-]/g, '').trim()
         amount = extractPrice(tabSep[2])
@@ -177,7 +171,7 @@ export function parseReceiptItems(text: string): ReceiptItem[] {
     }
 
     if (!amount) {
-      const multiSpace = line.match(/^(.+?)\s{2,}(.+)$/)
+      const multiSpace = lineCleaned.match(/^(.+?)\s{2,}(.+)$/)
       if (multiSpace) {
         const leftName = multiSpace[1].replace(/[^а-яА-Яa-zA-Z0-9\s-]/g, '').trim()
         const rightPrice = extractPrice(multiSpace[2])
@@ -189,7 +183,7 @@ export function parseReceiptItems(text: string): ReceiptItem[] {
     }
 
     if (!amount) {
-      const endPrice = line.match(/^(.+?)\s+(-?\d[\d\s]*[.,]\d{1,2})\s*([₽рРeEрР]|руб|rub)?\s*$/i)
+      const endPrice = lineCleaned.match(/^(.+?)\s+(-?\d[\d\s]*[.,]\d{1,2})\s*([₽рРрR]|руб|rub)?\s*$/i)
       if (endPrice) {
         name = endPrice[1].replace(/[^а-яА-Яa-zA-Z0-9\s-]/g, '').trim()
         amount = parseFloat(endPrice[2].replace(/\s/g, '').replace(',', '.'))
