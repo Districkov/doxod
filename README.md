@@ -1,4 +1,4 @@
-```markdown
+
 # doxod
 
 Веб-приложение на **Next.js + TypeScript + Prisma** с фокусом на производительность
@@ -36,4 +36,4 @@ public/     # статика
 
 ## 👤 Автор
 Иван Соломин — [github.com/Districkov](https://github.com/Districkov)
-```
+
